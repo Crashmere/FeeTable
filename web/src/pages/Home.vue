@@ -25,6 +25,20 @@ const sort = ref<TableSort>(
     ? (route.query.sort as TableSort)
     : "updated_desc",
 );
+const sortModes = [
+  { key: "updated", label: "修改时间", icon: "clock" },
+  { key: "month", label: "表格年月", icon: "calendar" },
+] as const;
+function sortLabel(mode: (typeof sortModes)[number]) {
+  if (!sort.value.startsWith(mode.key))
+    return mode.label + "：点击按最新在前排序";
+  return (
+    mode.label +
+    (sort.value.endsWith("desc")
+      ? "：最新在前，点击切换为最早在前"
+      : "：最早在前，点击切换为最新在前")
+  );
+}
 const merging = ref<Table>();
 const data = ref<TableList>();
 const loading = ref(true);
@@ -104,7 +118,8 @@ function turn(n: number) {
   page.value = n;
   load();
 }
-async function changeSort() {
+async function changeSort(key: "updated" | "month") {
+  sort.value = sort.value === key + "_desc" ? `${key}_asc` : `${key}_desc`;
   page.value = 1;
   await router.replace({ query: { ...route.query, sort: sort.value } });
   load();
@@ -128,22 +143,6 @@ async function merged(table: Table) {
       <Icon name="plus" />新建运费表
     </button>
   </section>
-  <div class="home-toolbar">
-    <RouterLink to="/locations" class="button">地点管理</RouterLink>
-    <label class="sort-control"
-      >排序<select
-        v-model="sort"
-        aria-label="排序"
-        :disabled="loading"
-        @change="changeSort"
-      >
-        <option value="updated_desc">修改时间：最新在前</option>
-        <option value="updated_asc">修改时间：最早在前</option>
-        <option value="month_desc">表格年月：最新在前</option>
-        <option value="month_asc">表格年月：最早在前</option>
-      </select></label
-    >
-  </div>
   <div v-if="error" class="notice error" role="alert">
     {{ error }} <button @click="load">重试</button>
   </div>
@@ -151,8 +150,37 @@ async function merged(table: Table) {
     <div v-for="n in 3" :key="n" class="skeleton skeleton-card" />
   </div>
   <template v-else-if="data"
-    ><div class="section-label">
-      <span>全部表格</span><span>{{ data.total }} 张</span>
+    ><div class="section-label table-list-heading">
+      <div class="table-count">
+        <span>全部表格</span><span>{{ data.total }} 张</span>
+      </div>
+      <div class="sort-icons" role="group" aria-label="表格排序">
+        <button
+          v-for="mode in sortModes"
+          :key="mode.key"
+          type="button"
+          class="sort-mode"
+          :class="{ active: sort.startsWith(mode.key) }"
+          :aria-label="sortLabel(mode)"
+          :title="sortLabel(mode)"
+          :aria-pressed="sort.startsWith(mode.key)"
+          @click="changeSort(mode.key)"
+        >
+          <Icon :name="mode.icon" :size="19" />
+          <span class="sort-direction" aria-hidden="true">
+            <Icon
+              name="up"
+              :size="12"
+              :class="{ selected: sort === mode.key + '_asc' }"
+            />
+            <Icon
+              name="down"
+              :size="12"
+              :class="{ selected: sort === mode.key + '_desc' }"
+            />
+          </span>
+        </button>
+      </div>
     </div>
     <div v-if="data.items.length" class="card-grid">
       <article v-for="t in data.items" :key="t.id" class="month-card">

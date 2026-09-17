@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Icon from "./components/Icon.vue";
+import SiteMenu from "./components/SiteMenu.vue";
 </script>
 <template>
   <header class="site-header">
@@ -7,6 +8,7 @@ import Icon from "./components/Icon.vue";
       ><span class="brand-icon"><Icon name="table" :size="23" /></span
       ><span>运费明细表</span></RouterLink
     >
+    <SiteMenu />
   </header>
   <main>
     <RouterView v-slot="{ Component, route }"

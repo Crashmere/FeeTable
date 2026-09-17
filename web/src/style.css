@@ -155,6 +155,42 @@ h2 {
   place-items: center;
   color: white;
 }
+.site-menu {
+  position: relative;
+}
+.menu-trigger {
+  width: 44px;
+  height: 44px;
+}
+.menu-trigger[aria-expanded="true"] {
+  background: var(--accent);
+  color: var(--green);
+}
+.menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 10;
+  min-width: 164px;
+  padding: 6px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px #24373014;
+}
+.menu-panel a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.menu-panel a:hover,
+.menu-panel a.router-link-active {
+  background: var(--accent);
+  color: var(--green);
+}
 main {
   max-width: 1200px;
   margin: 0 auto;
@@ -179,20 +215,48 @@ main {
   color: #818c7e;
   font-size: 13px;
 }
-.home-toolbar {
+.table-list-heading {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.table-count {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
+  gap: 10px;
+  white-space: nowrap;
 }
-.sort-control {
-  flex-direction: row;
-  align-items: center;
+.sort-icons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
 }
-.sort-control select {
-  width: auto;
+.sort-mode {
+  height: 44px;
+  min-width: 48px;
+  padding: 8px;
+  gap: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a9587;
+}
+.sort-mode:hover {
+  background: #edf1e8;
+}
+.sort-mode.active {
+  color: var(--green);
+  background: var(--accent);
+}
+.sort-direction {
+  display: flex;
+  flex-direction: column;
+}
+.sort-direction svg {
+  opacity: 0.35;
+}
+.sort-direction .selected {
+  opacity: 1;
+  stroke-width: 3;
 }
 .row-actions {
   display: flex;
@@ -856,17 +920,6 @@ select {
   }
 }
 @media (max-width: 759px) {
-  .home-toolbar {
-    align-items: stretch;
-    gap: 12px;
-  }
-  .sort-control {
-    width: 100%;
-  }
-  .sort-control select {
-    flex: 1;
-    min-width: 0;
-  }
   .location-list li {
     padding: 12px;
     gap: 8px;

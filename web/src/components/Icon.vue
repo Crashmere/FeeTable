@@ -1,6 +1,14 @@
 <script setup lang="ts">
 defineProps<{ name: string; size?: number }>();
 const paths: Record<string, string> = {
+  menu: "M4 6h16M4 12h16M4 18h16",
+  location:
+    "M12 21s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12ZM12 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
+  clock: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 7v5l3 2",
+  calendar:
+    "M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2ZM7 3v4M17 3v4M3 11h18M8 15h2m4 0h2m-8 3h2",
+  up: "m6 15 6-6 6 6",
+  down: "m6 9 6 6 6-6",
   plus: "M12 5v14M5 12h14",
   back: "m14 6-6 6 6 6",
   arrow: "M5 12h14m-5-5 5 5-5 5",
