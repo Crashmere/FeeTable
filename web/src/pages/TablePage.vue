@@ -139,7 +139,6 @@ function turn(n: number) {
   >
   <section class="page-heading">
     <div>
-      <p class="eyebrow">运输明细</p>
       <div class="title-line">
         <h1>
           {{
@@ -157,7 +156,6 @@ function turn(n: number) {
           <Icon name="edit" />
         </button>
       </div>
-      <p class="subtle">管理每一笔运输，清晰掌握本月运费。</p>
     </div>
     <div class="heading-actions">
       <RouterLink
@@ -187,7 +185,7 @@ function turn(n: number) {
       </div>
       <div class="summary-count">
         <strong>{{ data.count }}</strong
-        ><span>条运输记录</span>
+        ><span>条记录</span>
       </div>
       <div class="summary-decoration"><Icon name="table" :size="64" /></div>
     </div>
@@ -263,11 +261,7 @@ function turn(n: number) {
       </div>
       <div v-else class="empty-state compact">
         <span class="empty-icon"><Icon name="table" :size="36" /></span>
-        <h2>{{ filter ? "这个标签下暂无记录" : "还没有运输记录" }}</h2>
-        <p>添加日期、地点和运费，合计会自动更新。</p>
-        <button class="primary" @click="openForm()">
-          <Icon name="plus" />添加记录
-        </button>
+        <h2>{{ filter ? "该标签下暂无记录" : "暂无记录" }}</h2>
       </div>
       <div v-if="data.count > 50" class="pagination">
         <button :disabled="page === 1" @click="turn(page - 1)">上一页</button
@@ -300,7 +294,7 @@ function turn(n: number) {
       load();
     "
     ><form @submit.prevent="changeMonth">
-      <p class="subtle">表内全部记录会归入新的年月，日期中的“日”保持不变。</p>
+      <p class="subtle">将修改全部记录的年月。</p>
       <div class="form-row">
         <label
           >年份<input

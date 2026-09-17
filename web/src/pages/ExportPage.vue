@@ -54,9 +54,7 @@ function change(e: Event) {
   >
   <section class="page-heading">
     <div>
-      <p class="eyebrow">导出与分享</p>
       <h1>导出预览</h1>
-      <p class="subtle">选择范围，下载清晰完整的运费明细表。</p>
     </div>
     <label class="filter-select"
       ><Icon name="tag" :size="17" /><select
@@ -78,9 +76,7 @@ function change(e: Event) {
     ><div class="export-layout">
       <section class="paper-surround">
         <div class="preview-caption">
-          <span
-            >{{ data.table.year }} 年 {{ data.table.month }} 月 ·
-            {{ filter || "全部记录" }}</span
+          <span>{{ data.table.year }} 年 {{ data.table.month }} 月</span
           ><span>{{ data.count }} 条</span>
         </div>
         <div class="paper-scroll">
@@ -131,10 +127,6 @@ function change(e: Event) {
         </div>
       </section>
       <aside class="export-options">
-        <h2>下载表格</h2>
-        <p class="subtle">
-          {{ filter ? "标签：" + filter : "包含这张表的全部记录" }}
-        </p>
         <div class="export-total">
           <small>合计金额</small><strong>¥ {{ money(data.total) }}</strong>
         </div>
@@ -155,10 +147,6 @@ function change(e: Event) {
         >
           分享 PNG 图片
         </button>
-        <p class="export-hint">
-          图片下载后，可在手机中打开并保存到相册。PDF
-          保留完整长表，适合查看和转发。
-        </p>
         <p v-if="busy" class="notice" role="status">
           <span class="spinner" />正在生成 {{ busy.toUpperCase() }}…
         </p>

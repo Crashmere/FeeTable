@@ -84,9 +84,7 @@ function turn(n: number) {
 <template>
   <section class="page-heading">
     <div>
-      <p class="eyebrow">运费记录</p>
       <h1>我的运费表</h1>
-      <p class="subtle">按月整理每一程运输，轻松汇总与导出。</p>
     </div>
     <button class="primary" @click="openCreate">
       <Icon name="plus" />新建运费表
@@ -115,7 +113,7 @@ function turn(n: number) {
           <h2>{{ t.month }} 月运费明细</h2>
           <p class="amount-large"><small>¥</small>{{ money(t.total) }}</p>
           <div class="card-meta">
-            <span>{{ t.recordCount }} 条运输记录</span><span>查看明细</span>
+            <span>{{ t.recordCount }} 条记录</span>
           </div></RouterLink
         >
         <div class="card-bottom">
@@ -134,11 +132,7 @@ function turn(n: number) {
     </div>
     <div v-else class="empty-state">
       <span class="empty-icon"><Icon name="table" :size="42" /></span>
-      <h2>从第一张运费表开始</h2>
-      <p>选择年月，记录运输明细，自动汇总运费。</p>
-      <button class="primary" @click="openCreate">
-        <Icon name="plus" />新建运费表
-      </button>
+      <h2>暂无运费表</h2>
     </div>
     <div v-if="data.total > 30" class="pagination">
       <button :disabled="page === 1" @click="turn(page - 1)">上一页</button
@@ -154,7 +148,6 @@ function turn(n: number) {
     :busy="busy"
     @close="creating = false"
     ><form @submit.prevent="create">
-      <p class="subtle">选择这张表的年份和月份。</p>
       <div class="form-row">
         <label
           >年份<input

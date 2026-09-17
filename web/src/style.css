@@ -128,12 +128,6 @@ h2 {
   color: var(--muted);
   font-size: 14px;
 }
-.eyebrow {
-  font-size: 12px;
-  letter-spacing: 2px;
-  color: #6e806c;
-  margin-bottom: 10px;
-}
 .site-header {
   height: 88px;
   max-width: 1200px;
@@ -152,14 +146,6 @@ h2 {
   font-size: 17px;
   letter-spacing: 0.5px;
 }
-.brand small {
-  display: block;
-  font-size: 9px;
-  letter-spacing: 2.8px;
-  font-weight: 500;
-  color: #82917f;
-  margin-top: 1px;
-}
 .brand-icon {
   width: 43px;
   height: 43px;
@@ -169,16 +155,14 @@ h2 {
   place-items: center;
   color: white;
 }
-.header-note {
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: #899181;
-}
 main {
   max-width: 1200px;
   margin: 0 auto;
   padding: 48px 32px 64px;
-  min-height: calc(100vh - 164px);
+  min-height: calc(100vh - 88px);
+}
+.page-heading h1 {
+  margin-bottom: 0;
 }
 .page-heading {
   display: flex;
@@ -186,9 +170,6 @@ main {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 34px;
-}
-.page-heading p:last-child {
-  margin-bottom: 0;
 }
 .section-label {
   display: flex;
@@ -265,9 +246,6 @@ main {
   font-size: 12px;
   color: #8b9686;
 }
-.card-meta span:last-child {
-  color: #476c40;
-}
 .card-bottom {
   border-top: 1px solid #eef0e9;
   padding: 7px 16px 7px 24px;
@@ -276,17 +254,6 @@ main {
   justify-content: space-between;
   color: #9aa391;
   font-size: 11px;
-}
-.site-footer {
-  max-width: 1136px;
-  margin: 0 auto;
-  padding: 22px 0;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  color: #9aa391;
-  font-size: 11px;
-  letter-spacing: 1px;
 }
 .empty-state {
   padding: 75px 20px 85px;
@@ -299,11 +266,6 @@ main {
   margin-top: 20px;
   margin-bottom: 8px;
   font-size: 20px;
-}
-.empty-state p {
-  font-size: 14px;
-  color: var(--muted);
-  margin-bottom: 25px;
 }
 .empty-icon {
   display: inline-grid;
@@ -612,14 +574,6 @@ select {
 .record-form .form-row {
   margin: 0;
 }
-.form-context {
-  background: #f0f4e8;
-  color: #6c825a;
-  padding: 8px 12px;
-  border-radius: 7px;
-  font-size: 12px;
-  margin: 0;
-}
 .record-form .modal-actions {
   margin-top: 6px;
 }
@@ -628,12 +582,6 @@ select {
   border: 1px solid #dbe6d0;
   border-radius: 12px;
   padding: 14px 16px;
-}
-.amount-field small {
-  display: block;
-  color: #8b9b7b;
-  font-size: 11px;
-  margin-top: 7px;
 }
 .currency-input {
   display: flex;
@@ -779,14 +727,6 @@ select {
   flex-direction: column;
   gap: 10px;
 }
-.export-options h2 {
-  margin: 0;
-}
-.export-options .subtle {
-  font-size: 12px;
-  margin: 0 0 8px;
-  overflow-wrap: anywhere;
-}
 .export-total {
   border-top: 1px solid #e7eddf;
   border-bottom: 1px solid #e7eddf;
@@ -804,12 +744,6 @@ select {
   font-size: 22px;
   font-weight: 550;
   overflow-wrap: anywhere;
-}
-.export-hint {
-  font-size: 11px;
-  color: #95a087;
-  margin: 5px 0 0;
-  line-height: 1.8;
 }
 .sr-only {
   position: absolute;
@@ -849,22 +783,12 @@ select {
     height: 38px;
     border-radius: 10px;
   }
-  .brand small {
-    font-size: 8px;
-  }
-  .header-note {
-    display: none;
-  }
   main {
     padding: 28px 18px 40px;
-    min-height: calc(100dvh - 141px);
+    min-height: calc(100dvh - 74px);
   }
   h1 {
     font-size: 27px;
-  }
-  .eyebrow {
-    font-size: 10px;
-    margin-bottom: 7px;
   }
   .subtle {
     font-size: 12px;
@@ -894,19 +818,11 @@ select {
   .month-card h2 {
     font-size: 15px;
   }
-  .site-footer {
-    margin: 0 18px;
-    padding: 20px 0;
-    font-size: 10px;
-  }
   .empty-state {
     padding: 45px 16px;
   }
   .empty-state h2 {
     font-size: 18px;
-  }
-  .empty-state p {
-    font-size: 12px;
   }
   .heading-actions {
     width: 100%;
@@ -1090,11 +1006,8 @@ select {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
-  .export-options h2,
-  .export-options > .subtle,
   .export-total,
-  .export-options > .notice,
-  .export-hint {
+  .export-options > .notice {
     grid-column: 1/3;
   }
   .export-total {

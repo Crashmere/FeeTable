@@ -75,15 +75,14 @@ async function save() {
     :busy="busy"
     @close="emit('close')"
     ><form @submit.prevent="save" class="record-form">
-      <p class="form-context">{{ table.year }} 年 {{ table.month }} 月</p>
       <label
-        >日期 · 日<input
+        >日期（{{ table.year }} 年 {{ table.month }} 月）<input
           v-model="day"
           type="number"
           min="1"
           :max="days"
           inputmode="numeric"
-          placeholder="输入日期"
+          placeholder="日"
           required
       /></label>
       <div class="form-row">
@@ -113,13 +112,11 @@ async function save() {
             v-model="unitPrice"
             inputmode="decimal"
             placeholder="留空为固定费用"
-        /><small>最多两位小数</small></label>
+        /></label>
       </div>
       <div class="amount-field">
         <label
-          >{{
-            unitPrice === "" ? "运输金额 · 固定费用" : "运输金额 · 自动计算"
-          }}
+          >{{ unitPrice === "" ? "金额（固定）" : "金额（自动计算）" }}
           <div class="currency-input">
             <span>¥</span
             ><input
@@ -131,11 +128,7 @@ async function save() {
               required
             /><output v-else>{{ computedAmount ?? "—" }}</output>
           </div></label
-        ><small>{{
-          unitPrice === ""
-            ? "输入本次运输的固定金额"
-            : "数量 × 单价，四舍五入到分"
-        }}</small>
+        >
       </div>
       <SuggestInput
         v-model="tag"
