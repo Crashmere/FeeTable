@@ -50,6 +50,11 @@ export interface TableList {
   page: number;
   pageSize: number;
 }
+export type TableSort =
+  | "updated_desc"
+  | "updated_asc"
+  | "month_desc"
+  | "month_asc";
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -110,7 +115,17 @@ export async function request<T>(
   return body as T;
 }
 export const api = {
-  tables: (page = 1) => request<TableList>("tables" + query({ page })),
+  tables: (
+    page = 1,
+    sort: TableSort = "updated_desc",
+    year?: number,
+    month?: number,
+  ) => request<TableList>("tables" + query({ page, sort, year, month })),
+  mergeTables: (target: Table, sources: Table[]) =>
+    request<Table>("tables/" + target.id + "/merge", "POST", {
+      revision: target.revision,
+      sources: sources.map(({ id, revision }) => ({ id, revision })),
+    }),
   createTable: (year: number, month: number) =>
     request<Table>("tables", "POST", { year, month }),
   updateTable: (t: Table, year: number, month: number) =>
@@ -143,6 +158,16 @@ export const api = {
   suggestions: (kind: "locations" | "tags") => request<Suggestion[]>(kind),
   addSuggestion: (kind: "locations" | "tags", name: string) =>
     request(kind, "POST", { name }),
+  updateLocation: (location: Suggestion, name: string) =>
+    request("locations/" + location.id, "PUT", {
+      name,
+      previousName: location.name,
+    }),
+  deleteLocation: (location: Suggestion) =>
+    request(
+      "locations/" + location.id + query({ name: location.name }),
+      "DELETE",
+    ),
 };
 export async function download(report: Report, format: string, share = false) {
   const response = await fetch(

@@ -5,18 +5,29 @@
 | 方法与路径 | 用途 |
 | --- | --- |
 | GET /healthz | 数据库连接检查 |
-| GET /api/tables?page=1 | 月表列表、条数、金额，30 条/页 |
+| GET /api/tables?page=1&sort=updated_desc | 月表列表、条数、金额，30 条/页；可附 year/month 筛选 |
 | POST /api/tables | 创建，year/month 必填 |
 | GET /api/tables/{id}?page=1&tag=名称 | 表格、明细、全部标签、筛选条数/合计，50 条/页 |
 | PUT /api/tables/{id} | 修改 year/month，revision 必须匹配 |
 | DELETE /api/tables/{id}?revision=版本 | 删除表格与明细 |
+| POST /api/tables/{id}/merge | 将同年月的来源表合并到 id 保留表 |
 | POST /api/tables/{id}/records | 新增明细 |
 | PUT /api/tables/{id}/records/{record} | 完整更新明细 |
 | DELETE /api/tables/{id}/records/{record}?revision=版本 | 删除明细 |
 | GET /api/locations、GET /api/tags | 常用词条，按累计使用次数排序 |
 | POST /api/locations、POST /api/tags | body 为 name，已存在时不重复创建 |
+| PUT /api/locations/{id} | 地点改名，body 为 name、previousName |
+| DELETE /api/locations/{id}?name=原名称 | 删除常用地点，以原名称检查并发修改 |
 | GET /api/tables/{id}/report?tag=名称 | 完整导出数据与 revision |
 | GET /api/tables/{id}/export?format=png&revision=版本&tag=名称 | 下载；format 为 png/pdf/xlsx；inline=1 可内联打开 |
+
+## 月表排序、合并与地点管理
+
+sort 可为 updated_desc（默认）、updated_asc、month_desc、month_asc，分别表示修改时间或表格年月倒序/正序。year/month 必须同时传入且有效，筛选后的 total 与分页一致；不支持的排序返回 400。
+
+合并请求包含 revision 和 sources 数组；每个来源项包含 id、revision。路径 id 是保留表，顶层 revision 是它的版本；sources 包含 1–99 个不同来源表及各自版本，不能含保留表。成功返回保留表的新 revision、记录数与总额，来源表随后返回 404。年月必须全部相同，合计记录不超过 5,000 条；任意版本冲突返回 409，缺失表返回 404，全部操作原子回滚。记录包括重复内容均完整迁入。
+
+地点改名、删除保留已有记录快照；改名保留使用次数，重复名称返回 400。previousName/name 必须匹配服务器当前名称，否则 409；不存在的地点返回 404。删除的名称以后再次用于保存记录时会重新加入地点库。
 
 ## 记录输入
 

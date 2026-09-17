@@ -1,11 +1,31 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from "vue";
-import { useRouter } from "vue-router";
-import { api, ApiError, type TableList, type Table } from "../api";
+import { useRouter, useRoute } from "vue-router";
+import {
+  api,
+  ApiError,
+  type TableList,
+  type Table,
+  type TableSort,
+} from "../api";
 import { money } from "../money";
 import Icon from "../components/Icon.vue";
 import Modal from "../components/Modal.vue";
+import MergeTables from "../components/MergeTables.vue";
 const router = useRouter();
+const route = useRoute();
+const sorts: TableSort[] = [
+  "updated_desc",
+  "updated_asc",
+  "month_desc",
+  "month_asc",
+];
+const sort = ref<TableSort>(
+  sorts.includes(route.query.sort as TableSort)
+    ? (route.query.sort as TableSort)
+    : "updated_desc",
+);
+const merging = ref<Table>();
 const data = ref<TableList>();
 const loading = ref(true);
 const error = ref("");
@@ -18,20 +38,24 @@ const uncertain = ref(false);
 const now = new Date();
 const year = ref(now.getFullYear());
 const month = ref(now.getMonth() + 1);
+let sequence = 0;
 async function load() {
-  loading.value = true;
+  const n = ++sequence;
+  loading.value = !data.value;
   error.value = "";
   try {
-    data.value = await api.tables(page.value);
-    const last = Math.max(1, Math.ceil(data.value.total / 30));
+    const result = await api.tables(page.value, sort.value);
+    if (n !== sequence) return;
+    data.value = result;
+    const last = Math.max(1, Math.ceil(result.total / 30));
     if (page.value > last) {
       page.value = last;
-      data.value = await api.tables(page.value);
+      await load();
     }
   } catch (e) {
-    error.value = (e as Error).message;
+    if (n === sequence) error.value = (e as Error).message;
   } finally {
-    loading.value = false;
+    if (n === sequence) loading.value = false;
   }
 }
 onMounted(load);
@@ -80,6 +104,20 @@ function turn(n: number) {
   page.value = n;
   load();
 }
+async function changeSort() {
+  page.value = 1;
+  await router.replace({ query: { ...route.query, sort: sort.value } });
+  load();
+}
+function closeMerge() {
+  merging.value = undefined;
+  load();
+}
+async function merged(table: Table) {
+  merging.value = undefined;
+  await nextTick();
+  await router.push("/tables/" + table.id);
+}
 </script>
 <template>
   <section class="page-heading">
@@ -90,6 +128,22 @@ function turn(n: number) {
       <Icon name="plus" />新建运费表
     </button>
   </section>
+  <div class="home-toolbar">
+    <RouterLink to="/locations" class="button">地点管理</RouterLink>
+    <label class="sort-control"
+      >排序<select
+        v-model="sort"
+        aria-label="排序"
+        :disabled="loading"
+        @change="changeSort"
+      >
+        <option value="updated_desc">修改时间：最新在前</option>
+        <option value="updated_asc">修改时间：最早在前</option>
+        <option value="month_desc">表格年月：最新在前</option>
+        <option value="month_asc">表格年月：最早在前</option>
+      </select></label
+    >
+  </div>
   <div v-if="error" class="notice error" role="alert">
     {{ error }} <button @click="load">重试</button>
   </div>
@@ -114,19 +168,29 @@ function turn(n: number) {
           <p class="amount-large"><small>¥</small>{{ money(t.total) }}</p>
           <div class="card-meta">
             <span>{{ t.recordCount }} 条记录</span>
+            <span>#{{ t.id }}</span>
           </div></RouterLink
         >
         <div class="card-bottom">
           <span
             >更新于
             {{ new Date(t.updatedAt).toLocaleDateString("zh-CN") }}</span
-          ><button
-            class="icon-button"
-            :aria-label="'删除 ' + t.year + '年' + t.month + '月表格'"
-            @click="askDelete(t)"
           >
-            <Icon name="trash" :size="17" />
-          </button>
+          <div class="row-actions">
+            <button
+              class="card-merge"
+              :aria-label="'合并到表 #' + t.id"
+              @click="merging = t"
+            >
+              合并</button
+            ><button
+              class="icon-button"
+              :aria-label="'删除 ' + t.year + '年' + t.month + '月表格'"
+              @click="askDelete(t)"
+            >
+              <Icon name="trash" :size="17" />
+            </button>
+          </div>
         </div>
       </article>
     </div>
@@ -187,4 +251,10 @@ function turn(n: number) {
       </button>
     </div></Modal
   >
+  <MergeTables
+    v-if="merging"
+    :target="merging"
+    @close="closeMerge"
+    @merged="merged"
+  />
 </template>

@@ -179,6 +179,93 @@ main {
   color: #818c7e;
   font-size: 13px;
 }
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.sort-control {
+  flex-direction: row;
+  align-items: center;
+}
+.sort-control select {
+  width: auto;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.card-merge {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.location-search {
+  max-width: 480px;
+  margin-bottom: 24px;
+}
+.location-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.location-list li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+.location-list li + li {
+  border-top: 1px solid var(--border);
+}
+.location-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wrap-text {
+  overflow-wrap: anywhere;
+}
+.form-note {
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.merge-choice {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.merge-choice input {
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--green);
+}
+.merge-choice span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.merge-choice small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.merge-summary {
+  margin: 20px 0 0;
+  font-variant-numeric: tabular-nums;
+}
 .card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -505,6 +592,7 @@ dialog {
   box-shadow: 0 25px 100px #13231130;
   color: inherit;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 dialog::backdrop {
   background: #10291d66;
@@ -768,6 +856,21 @@ select {
   }
 }
 @media (max-width: 759px) {
+  .home-toolbar {
+    align-items: stretch;
+    gap: 12px;
+  }
+  .sort-control {
+    width: 100%;
+  }
+  .sort-control select {
+    flex: 1;
+    min-width: 0;
+  }
+  .location-list li {
+    padding: 12px;
+    gap: 8px;
+  }
   :root {
     font-size: 14px;
   }

@@ -51,6 +51,23 @@ type TableInput struct {
 	Month    int   `json:"month"`
 	Revision int64 `json:"revision"`
 }
+type TableQuery struct {
+	Page        int
+	Sort        string
+	Year, Month int
+}
+type TableVersion struct {
+	ID       int64 `json:"id"`
+	Revision int64 `json:"revision"`
+}
+type MergeInput struct {
+	Revision int64          `json:"revision"`
+	Sources  []TableVersion `json:"sources"`
+}
+type LocationInput struct {
+	Name         string `json:"name"`
+	PreviousName string `json:"previousName"`
+}
 type RecordInput struct {
 	Day       int     `json:"day"`
 	Location1 string  `json:"location1"`

@@ -34,7 +34,9 @@ const uncertain = ref(false);
 let sequence = 0;
 async function load() {
   const n = ++sequence;
-  loading.value = true;
+  // Keep the current rows during refresh so closing a dialog cannot collapse
+  // the page and clamp the restored scroll position.
+  loading.value = !data.value;
   error.value = "";
   try {
     const report = await api.report(id, filter.value, page.value);

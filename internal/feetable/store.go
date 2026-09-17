@@ -29,16 +29,37 @@ func scanTable(row scanner) (Table, error) {
 func readTable(ctx context.Context, q queryer, id int64) (Table, error) {
 	return scanTable(q.QueryRowContext(ctx, tableSelect+" WHERE t.id=? GROUP BY t.id", id))
 }
-func (s *Store) Tables(ctx context.Context, page int) (TableList, error) {
-	if page < 1 {
+func (s *Store) Tables(ctx context.Context, in TableQuery) (TableList, error) {
+	if in.Page < 1 || in.Page > 1000000 {
 		return TableList{}, invalid("页码无效")
 	}
-	out := TableList{Items: []Table{}, Page: page, PageSize: 30}
+	order := "t.updated_at DESC,t.id DESC"
+	switch in.Sort {
+	case "", "updated_desc":
+	case "updated_asc":
+		order = "t.updated_at,t.id"
+	case "month_desc":
+		order = "t.year DESC,t.month DESC,t.updated_at DESC,t.id DESC"
+	case "month_asc":
+		order = "t.year,t.month,t.updated_at DESC,t.id DESC"
+	default:
+		return TableList{}, invalid("排序方式无效")
+	}
+	where := ""
+	args := []any{}
+	if in.Year != 0 || in.Month != 0 {
+		if e := validMonth(in.Year, in.Month); e != nil {
+			return TableList{}, e
+		}
+		where = " WHERE t.year=? AND t.month=?"
+		args = append(args, in.Year, in.Month)
+	}
+	out := TableList{Items: []Table{}, Page: in.Page, PageSize: 30}
 	err := s.transaction(ctx, func(tx *sql.Tx) error {
-		if e := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM fee_tables").Scan(&out.Total); e != nil {
+		if e := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM fee_tables t"+where, args...).Scan(&out.Total); e != nil {
 			return e
 		}
-		rows, e := tx.QueryContext(ctx, tableSelect+" GROUP BY t.id ORDER BY t.updated_at DESC,t.id DESC LIMIT 30 OFFSET ?", (page-1)*30)
+		rows, e := tx.QueryContext(ctx, tableSelect+where+" GROUP BY t.id ORDER BY "+order+" LIMIT 30 OFFSET ?", append(args, (in.Page-1)*30)...)
 		if e != nil {
 			return e
 		}

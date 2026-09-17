@@ -32,7 +32,21 @@ func New(store *feetable.Store, assets fs.FS) http.Handler {
 		reply(w, map[string]string{"status": "ok"}, store.Ping(r.Context()))
 	})
 	mux.HandleFunc("GET /api/tables", func(w http.ResponseWriter, r *http.Request) {
-		v, e := store.Tables(r.Context(), page(r))
+		in := feetable.TableQuery{Page: page(r), Sort: r.URL.Query().Get("sort")}
+		if r.URL.Query().Has("year") || r.URL.Query().Has("month") {
+			var err error
+			in.Year, err = strconv.Atoi(r.URL.Query().Get("year"))
+			if err != nil || in.Year < 1 {
+				reply(w, nil, &feetable.Error{Code: "VALIDATION", Message: "年份无效"})
+				return
+			}
+			in.Month, err = strconv.Atoi(r.URL.Query().Get("month"))
+			if err != nil || in.Month < 1 {
+				reply(w, nil, &feetable.Error{Code: "VALIDATION", Message: "月份无效"})
+				return
+			}
+		}
+		v, e := store.Tables(r.Context(), in)
 		reply(w, v, e)
 	})
 	mux.HandleFunc("POST /api/tables", func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +67,14 @@ func New(store *feetable.Store, assets fs.FS) http.Handler {
 	})
 	mux.HandleFunc("DELETE /api/tables/{id}", func(w http.ResponseWriter, r *http.Request) {
 		reply(w, map[string]bool{"ok": true}, store.DeleteTable(r.Context(), id(r, "id"), revision(r)))
+	})
+	mux.HandleFunc("POST /api/tables/{id}/merge", func(w http.ResponseWriter, r *http.Request) {
+		var in feetable.MergeInput
+		if !decode(w, r, &in) {
+			return
+		}
+		v, e := store.MergeTables(r.Context(), id(r, "id"), in)
+		reply(w, v, e)
 	})
 	mux.HandleFunc("GET /api/tables/{id}", func(w http.ResponseWriter, r *http.Request) {
 		v, e := store.Report(r.Context(), id(r, "id"), tag(r), page(r), false)
@@ -96,6 +118,16 @@ func New(store *feetable.Store, assets fs.FS) http.Handler {
 			reply(w, map[string]bool{"ok": true}, store.AddSuggestion(r.Context(), kind, in.Name))
 		})
 	}
+	mux.HandleFunc("PUT /api/locations/{id}", func(w http.ResponseWriter, r *http.Request) {
+		var in feetable.LocationInput
+		if !decode(w, r, &in) {
+			return
+		}
+		reply(w, map[string]bool{"ok": true}, store.UpdateLocation(r.Context(), id(r, "id"), in))
+	})
+	mux.HandleFunc("DELETE /api/locations/{id}", func(w http.ResponseWriter, r *http.Request) {
+		reply(w, map[string]bool{"ok": true}, store.DeleteLocation(r.Context(), id(r, "id"), r.URL.Query().Get("name")))
+	})
 	mux.HandleFunc("GET /api/tables/{id}/export", s.export)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		respond(w, 404, map[string]any{"error": feetable.Error{Code: "NOT_FOUND", Message: "接口不存在"}})
@@ -175,6 +207,10 @@ func decode(w http.ResponseWriter, r *http.Request, out any) bool {
 		required = []string{"day", "location1", "location2", "quantity", "unitPrice", "amount", "tag", "revision"}
 	case *feetable.TableInput:
 		required = []string{"year", "month"}
+	case *feetable.MergeInput:
+		required = []string{"revision", "sources"}
+	case *feetable.LocationInput:
+		required = []string{"name", "previousName"}
 	default:
 		required = []string{"name"}
 	}
