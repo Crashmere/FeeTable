@@ -1,15 +1,21 @@
 export function calculate(quantity: string, price: string): string | null {
+  quantity = quantity.trim();
+  price = price.trim();
   if (
     !/^-?[0-9]+(?:[.][0-9]{1,3})?$/.test(quantity) ||
-    !/^[0-9]+$/.test(price) ||
-    quantity.length > 20 ||
-    price.length > 12
+    !/^[0-9]+(?:[.][0-9]{1,2})?$/.test(price) ||
+    quantity.length > 24 ||
+    price.length > 24
   )
     return null;
   const negative = quantity.startsWith("-");
   const [whole, fraction = ""] = quantity.replace("-", "").split(".");
   const q = BigInt(whole) * 1000n + BigInt(fraction.padEnd(3, "0"));
-  const cents = (q * BigInt(price) + 5n) / 10n;
+  const [priceWhole, priceFraction = ""] = price.split(".");
+  const p = BigInt(priceWhole) * 100n + BigInt(priceFraction.padEnd(2, "0"));
+  const cents = (q * p + 500n) / 1000n;
+  const max = 1_000_000_000_000n;
+  if (q > max || p > max || cents > max) return null;
   return (
     (negative && cents !== 0n ? "-" : "") +
     cents / 100n +

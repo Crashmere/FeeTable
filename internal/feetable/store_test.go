@@ -115,6 +115,35 @@ func TestRecordLifecycle(t *testing.T) {
 		t.Fatal("cascade failed")
 	}
 }
+
+func TestDecimalUnitPrice(t *testing.T) {
+	ctx := context.Background()
+	s, table := fixture(t)
+	in := input(table.Revision)
+	price := "2.88"
+	in.Quantity, in.UnitPrice, in.Amount = "10.5", &price, "999"
+	r, err := s.SaveRecord(ctx, table.ID, 0, in)
+	if err != nil || r.UnitPrice == nil || *r.UnitPrice != "2.88" || r.Amount != "30.24" {
+		t.Fatal(r, err)
+	}
+	report, err := s.Report(ctx, table.ID, nil, 1, true)
+	if err != nil || report.Total != "30.24" || *report.Records[0].UnitPrice != price {
+		t.Fatal(report, err)
+	}
+	in.Revision = report.Table.Revision
+	for _, bad := range []string{"2.888", "-0.01", "10000000000.01"} {
+		in.UnitPrice = &bad
+		if _, err := s.SaveRecord(ctx, table.ID, r.ID, in); err == nil {
+			t.Fatalf("invalid price accepted: %s", bad)
+		}
+	}
+	price = "0.01"
+	in.UnitPrice, in.Quantity = &price, "-0.5"
+	r, err = s.SaveRecord(ctx, table.ID, r.ID, in)
+	if err != nil || r.Amount != "-0.01" {
+		t.Fatal(r, err)
+	}
+}
 func TestBackupRestoreAndIdentity(t *testing.T) {
 	ctx := context.Background()
 	s, table := fixture(t)

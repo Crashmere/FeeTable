@@ -125,7 +125,7 @@ func scanRecord(row scanner) (Record, error) {
 	r.Quantity = FormatDecimal(quantity, 3)
 	r.Amount = FormatDecimal(amount, 2)
 	if price.Valid {
-		v := FormatDecimal(price.Int64/100, 0)
+		v := FormatDecimal(price.Int64, 2)
 		r.UnitPrice = &v
 	}
 	if tag.Valid {
@@ -233,14 +233,13 @@ func (s *Store) SaveRecord(ctx context.Context, tableID, id int64, in RecordInpu
 	var price *int64
 	var amount int64
 	if in.UnitPrice != nil {
-		p, e := ParseDecimal(*in.UnitPrice, 0)
+		p, e := ParseDecimal(*in.UnitPrice, 2)
 		if e != nil {
-			return out, e
+			return out, invalid("单价：" + e.Error())
 		}
-		if p < 0 || p > MaxValue/100 {
-			return out, invalid("单价须为非负整数元且不能超出范围")
+		if p < 0 {
+			return out, invalid("单价不能为负数")
 		}
-		p *= 100
 		price = &p
 		amount, err = Calculate(quantity, p)
 	} else {

@@ -59,6 +59,16 @@ func Open(path string, create bool) (*Store, error) {
 }
 func (s *Store) Close() error                   { return s.db.Close() }
 func (s *Store) Ping(ctx context.Context) error { return s.db.PingContext(ctx) }
+func (s *Store) RequireCurrentSchema(ctx context.Context) error {
+	var version int
+	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
+		return err
+	}
+	if version != 2 {
+		return fmt.Errorf("数据库需要升级，请先停止服务、备份并运行 feetable migrate")
+	}
+	return nil
+}
 func (s *Store) transaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -70,7 +80,7 @@ func (s *Store) transaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	}
 	return tx.Commit()
 }
-func checkDB(ctx context.Context, db *sql.DB) error {
+func checkDB(ctx context.Context, db queryer) error {
 	var version, appID int
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return err
@@ -78,7 +88,7 @@ func checkDB(ctx context.Context, db *sql.DB) error {
 	if err := db.QueryRowContext(ctx, "PRAGMA application_id").Scan(&appID); err != nil {
 		return err
 	}
-	if version != 1 || appID != 1179931714 {
+	if (version != 1 && version != 2) || appID != 1179931714 {
 		return fmt.Errorf("不支持的 FeeTable 数据库")
 	}
 	var result string

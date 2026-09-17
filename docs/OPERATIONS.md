@@ -82,6 +82,15 @@ restore 只写一个不存在的新文件，不直接覆盖生产。演练在独
 
 ## 发布、配置和文档同步
 
+当前数据库版本为 2，单价以分保存，支持两位小数。已有 v1 库须由管理员完成一次停服升级，普通发布和 serve 不会隐式升级：
+
+1. 从已验证提交构建候选程序，核对哈希。用现有程序备份，并先在恢复出的独立副本上运行候选程序的 migrate、check 和 serve，验证可启动。
+2. 持有 /run/lock/feetable-deploy.lock，暂停备份 timer，确认备份 service 已结束，再停止 feetable。用现有程序生成最终升级前备份并校验。
+3. 以 feetable 用户运行候选程序的 migrate --db /opt/feetable/data/feetable.sqlite，再运行 check。升级在单一事务中完成；失败回滚事务，不会留下部分新表。原始分值直接保留，不乘除已有单价。
+4. 安装候选程序后启动服务，检查本机和代理健康，更新 current-commit，恢复备份 timer，再进行普通 CI 发布。
+
+v1 的程序不支持 v2 数据库，也会截断小数单价，不能在升级后直接回退到 v1 程序。升级后应以 v2 兼容程序修复；若确实需要回退数据，必须先按恢复流程确认时点及数据损失。保留升级前备份，不自动覆盖已经接受新写入的数据库。新程序的 check/backup/restore 可读取 v1 备份；恢复后需显式 migrate 到 v2 才能 serve。
+
 日常程序发布与自动回退见 [CICD.md](CICD.md)。它只替换二进制；配置、unit、发布脚本、文档仍由管理员从已审阅提交部署。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
 
 文档同步按 server-operations 的 maintenance 流程：git ls-files 审核 AGENTS.md 和 docs/*.md 白名单，从确认提交 git archive 导出，逐文件安装至 /opt/feetable，最后生成 docs/SOURCE（repository、commit、subdirectory、synced_at）并比对 SHA-256。不要整目录上传工作区。共享清单与入口属于 agent-config，需独立提交、同步 /opt/server-context；未改变的 Ledger 源码和文档无需跟随重写。

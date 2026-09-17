@@ -111,9 +111,9 @@ async function save() {
         ><label
           >单价（元）<input
             v-model="unitPrice"
-            inputmode="numeric"
+            inputmode="decimal"
             placeholder="留空为固定费用"
-        /></label>
+        /><small>最多两位小数</small></label>
       </div>
       <div class="amount-field">
         <label

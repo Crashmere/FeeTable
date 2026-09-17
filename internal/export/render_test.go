@@ -104,3 +104,36 @@ func TestLongNamesAndLargeTotalRemainVisible(t *testing.T) {
 		t.Fatal("long name row too short", height, err)
 	}
 }
+
+func TestDecimalPriceExports(t *testing.T) {
+	r := syntheticReport()
+	price := "2.88"
+	r.Records = r.Records[:1]
+	r.Records[0].Quantity, r.Records[0].UnitPrice, r.Records[0].Amount = "10.500", &price, "30.24"
+	r.Total, r.Count = "30.24", 1
+	layout, err := BuildLayout(r)
+	if err != nil || layout.Cells[15].Text != "2.88" || layout.Cells[16].Text != "30.24" {
+		t.Fatal(layout, err)
+	}
+	if _, err := PNG(r); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PDF(r); err != nil {
+		t.Fatal(err)
+	}
+	data, err := XLSX(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	book, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer book.Close()
+	for cell, want := range map[string]string{"E4": "10.500", "F4": "2.88", "G4": "30.24", "G5": "30.24"} {
+		got, err := book.GetCellValue("运费明细表", cell)
+		if err != nil || got != want {
+			t.Fatalf("%s: got %q want %q (%v)", cell, got, want, err)
+		}
+	}
+}

@@ -24,7 +24,7 @@ func main() {
 }
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("用法：feetable init|serve|check|backup|restore --db <路径> [--out <备份路径>] [--from <恢复来源>]")
+		return fmt.Errorf("用法：feetable init|serve|check|backup|restore|migrate --db <路径> [--out <备份路径>] [--from <恢复来源>]")
 	}
 	command := os.Args[1]
 	flags := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -40,6 +40,8 @@ func run() error {
 	}
 	ctx := context.Background()
 	switch command {
+	case "migrate":
+		return feetable.Migrate(ctx, *dbPath)
 	case "check":
 		return feetable.CheckFile(ctx, *dbPath)
 	case "restore":
@@ -65,6 +67,9 @@ func run() error {
 	if command == "init" {
 		slog.Info("数据库已创建", "path", *dbPath)
 		return nil
+	}
+	if err := store.RequireCurrentSchema(ctx); err != nil {
+		return err
 	}
 	server := &http.Server{Addr: *addr, Handler: httpapi.New(store, web.Assets()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 90 * time.Second}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)

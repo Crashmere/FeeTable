@@ -18,7 +18,7 @@ quantity_milli、unit_price_cents、amount_cents 均为整数。输入十进制�
 
 月表列表按 updated_at、id 倒序；明细按 day、id 升序。月表每页 30 条，明细每页 50 条，合计与计数覆盖完整筛选集。读取头部、明细与汇总使用一致的读事务。
 
-数据库 application_id 为 1179931714，user_version 为 1；正常启动只打开现有库并验证身份和完整性。init 要求目标不存在。升级 schema 必须有明确的迁移与回退策略。
+数据库 application_id 为 1179931714，user_version 为 2；正常启动只打开现有库并验证身份、完整性和当前版本。init 要求目标不存在。migrate 在停止服务并备份后显式运行，在一个事务中将 v1 的明细表约束升级为支持分单位价，保留数据、ID、修订版本、自增序列与索引。check/backup/restore 支持 v1 与 v2，serve 要求 v2；具体步骤和回退边界见 OPERATIONS。
 
 ## 界面与保存反馈
 

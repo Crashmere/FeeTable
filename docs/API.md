@@ -35,7 +35,7 @@
 }
 ```
 
-unitPrice 非 null 时按 quantity 计算，amount 仅作完整表单字段，不决定保存金额；unitPrice=null 时使用 amount。金额与数量响应固定两位/三位小数，单价仍为整数元字符串。
+unitPrice 非 null 时按 quantity 计算，amount 仅作完整表单字段，不决定保存金额；unitPrice=null 时使用 amount。金额与数量响应固定两位/三位小数，单价响应固定两位小数字符串，输入允许非负整数或最多两位小数（例如 "2.88"）。
 
 写成功返回已保存实体或 `{"ok":true}`。客户端随后重读表格取得新 revision。tag 以 URLSearchParams 编码，省略表示全部记录，传入则精确匹配；标签中的斜线等字符不是路由路径。
 

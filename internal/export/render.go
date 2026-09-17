@@ -274,7 +274,7 @@ func XLSX(report feetable.Report) ([]byte, error) {
 		a, _ := strconv.ParseFloat(r.Amount, 64)
 		var p any
 		if r.UnitPrice != nil {
-			p, _ = strconv.ParseInt(*r.UnitPrice, 10, 64)
+			p, _ = strconv.ParseFloat(*r.UnitPrice, 64)
 		}
 		values := []any{report.Table.Month, r.Day, r.Location1, r.Location2, q, p, a}
 		if e = f.SetSheetRow(sheet, fmt.Sprintf("A%d", row), &values); e != nil {
@@ -284,6 +284,9 @@ func XLSX(report feetable.Report) ([]byte, error) {
 			return nil, e
 		}
 		if e = f.SetCellStyle(sheet, fmt.Sprintf("G%d", row), fmt.Sprintf("G%d", row), amount); e != nil {
+			return nil, e
+		}
+		if e = f.SetCellStyle(sheet, fmt.Sprintf("F%d", row), fmt.Sprintf("F%d", row), amount); e != nil {
 			return nil, e
 		}
 		// Use the wrapped report geometry so long names remain visible in Excel.
