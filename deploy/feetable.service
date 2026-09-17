@@ -1,0 +1,23 @@
+[Unit]
+Description=FeeTable freight records
+After=network.target
+
+[Service]
+Type=simple
+User=feetable
+Group=feetable
+WorkingDirectory=/opt/feetable
+EnvironmentFile=/opt/feetable/config/feetable.env
+ExecStart=/opt/feetable/bin/feetable serve
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/feetable/data
+
+[Install]
+WantedBy=multi-user.target
