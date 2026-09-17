@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -74,5 +75,32 @@ func TestPNGLimit(t *testing.T) {
 	}
 	if _, e := PNG(r); e == nil {
 		t.Fatal("unbounded image accepted")
+	}
+}
+
+func TestLongNamesAndLargeTotalRemainVisible(t *testing.T) {
+	r := syntheticReport()
+	r.Records[0].Location1 = strings.Repeat("汉", 80)
+	r.Total = "50000000000000.00"
+	layout, err := BuildLayout(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	footer := layout.Cells[len(layout.Cells)-1]
+	if footer.H < 68 || int(footer.Y+footer.H) > layout.Height-32 {
+		t.Fatal("large total clipped", footer, layout.Height)
+	}
+	data, err := XLSX(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	book, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer book.Close()
+	height, err := book.GetRowHeight("运费明细表", 4)
+	if err != nil || height < 120 {
+		t.Fatal("long name row too short", height, err)
 	}
 }

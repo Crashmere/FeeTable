@@ -113,9 +113,10 @@ func BuildLayout(report feetable.Report) (Layout, error) {
 		}
 		y += height
 	}
-	add(32, y, total-158, 48, "", "left", 18)
-	add(32+total-158, y, 158, 48, report.Total, "right", 18)
-	layout.Height = int(y + 80)
+	footerHeight := math.Max(48, float64(len(wrap(report.Total, 138, f)))*24+20)
+	add(32, y, total-158, footerHeight, "", "left", 18)
+	add(32+total-158, y, 158, footerHeight, report.Total, "right", 18)
+	layout.Height = int(y + footerHeight + 32)
 	return layout, nil
 }
 func PNG(report feetable.Report) ([]byte, error) {
@@ -222,6 +223,10 @@ func PDF(report feetable.Report) ([]byte, error) {
 	return out.Bytes(), e
 }
 func XLSX(report feetable.Report) ([]byte, error) {
+	layout, e := BuildLayout(report)
+	if e != nil {
+		return nil, e
+	}
 	f := excelize.NewFile()
 	defer f.Close()
 	sheet := "运费明细表"
@@ -281,7 +286,8 @@ func XLSX(report feetable.Report) ([]byte, error) {
 		if e = f.SetCellStyle(sheet, fmt.Sprintf("G%d", row), fmt.Sprintf("G%d", row), amount); e != nil {
 			return nil, e
 		}
-		if e = f.SetRowHeight(sheet, row, 36); e != nil {
+		// Use the wrapped report geometry so long names remain visible in Excel.
+		if e = f.SetRowHeight(sheet, row, layout.Cells[10+i*7].H*0.75); e != nil {
 			return nil, e
 		}
 	}
