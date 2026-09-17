@@ -124,44 +124,56 @@ func PNG(report feetable.Report) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
-	if int64(layout.Width)*int64(layout.Height) > 20_000_000 {
+	scale := pngScale(layout)
+	if scale == 0 {
 		return nil, &feetable.Error{Code: "LIMIT", Message: "图片过长，请按标签分开导出，或使用 PDF / Excel"}
 	}
-	img := image.NewRGBA(image.Rect(0, 0, layout.Width, layout.Height))
+	// This monochrome report needs one byte per pixel, including antialiasing.
+	// The 80 MP limit keeps the bitmap within the previous 80 MB RGBA budget.
+	img := image.NewGray(image.Rect(0, 0, layout.Width*scale, layout.Height*scale))
 	draw.Draw(img, img.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
-	faces := map[float64]font.Face{}
+	type pngFont struct{ layout, raster font.Face }
+	faces := map[float64]pngFont{}
 	defer func() {
 		for _, f := range faces {
-			f.Close()
+			f.layout.Close()
+			f.raster.Close()
 		}
 	}()
 	line := func(x, y, w, h int) {
 		draw.Draw(img, image.Rect(x, y, x+w, y+h), image.NewUniform(color.Black), image.Point{}, draw.Src)
 	}
 	for _, c := range layout.Cells {
-		x, y, w, h := int(c.X), int(c.Y), int(c.W), int(c.H)
-		line(x, y, w, 1)
-		line(x, y+h, w+1, 1)
-		line(x, y, 1, h)
-		line(x+w, y, 1, h)
-		f := faces[c.Size]
-		if f == nil {
-			f, e = face(c.Size)
+		x, y, w, h := int(c.X)*scale, int(c.Y)*scale, int(c.W)*scale, int(c.H)*scale
+		line(x, y, w, scale)
+		line(x, y+h, w+scale, scale)
+		line(x, y, scale, h)
+		line(x+w, y, scale, h)
+		fonts, ok := faces[c.Size]
+		if !ok {
+			fonts.layout, e = face(c.Size)
 			if e != nil {
 				return nil, e
 			}
-			faces[c.Size] = f
+			fonts.raster, e = face(c.Size * float64(scale))
+			if e != nil {
+				fonts.layout.Close()
+				return nil, e
+			}
+			faces[c.Size] = fonts
 		}
-		lines := wrap(c.Text, c.W-20, f)
-		lineHeight := c.Size + 6
-		top := c.Y + (c.H-float64(len(lines))*lineHeight)/2
+		// Wrap at the shared logical size so PNG, PDF and XLSX keep the same rows.
+		lines := wrap(c.Text, c.W-20, fonts.layout)
+		f := fonts.raster
+		lineHeight := (c.Size + 6) * float64(scale)
+		top := float64(y) + (float64(h)-float64(len(lines))*lineHeight)/2
 		for i, text := range lines {
 			tw := float64(font.MeasureString(f, text)) / 64
-			tx := c.X + 10
+			tx := float64(x + 10*scale)
 			if c.Align == "right" {
-				tx = c.X + c.W - 10 - tw
+				tx = float64(x+w-10*scale) - tw
 			} else if c.Align == "center" {
-				tx = c.X + (c.W-tw)/2
+				tx = float64(x) + (float64(w)-tw)/2
 			}
 			d := font.Drawer{Dst: img, Src: image.NewUniform(color.Black), Face: f, Dot: fixed.P(int(math.Round(tx)), int(math.Round(top+float64(i)*lineHeight+float64(f.Metrics().Ascent)/64)))}
 			d.DrawString(text)
@@ -171,6 +183,19 @@ func PNG(report feetable.Report) ([]byte, error) {
 	e = png.Encode(&out, img)
 	return out.Bytes(), e
 }
+
+const pngMaxPixels = 80_000_000
+
+func pngScale(layout Layout) int {
+	pixels := int64(layout.Width) * int64(layout.Height)
+	for scale := 3; scale >= 2; scale-- {
+		if pixels <= pngMaxPixels/int64(scale*scale) {
+			return scale
+		}
+	}
+	return 0
+}
+
 func PDF(report feetable.Report) ([]byte, error) {
 	layout, e := BuildLayout(report)
 	if e != nil {

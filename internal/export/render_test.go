@@ -2,8 +2,10 @@ package export
 
 import (
 	"bytes"
+	"errors"
 	"feetable/internal/feetable"
 	"github.com/xuri/excelize/v2"
+	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -22,8 +24,26 @@ func TestFormats(t *testing.T) {
 		t.Fatal(e)
 	}
 	config, e := png.DecodeConfig(bytes.NewReader(p))
-	if e != nil || config.Width != 944 || config.Height < 320 {
+	if e != nil || config.Width != 2832 || config.Height < 960 {
 		t.Fatal(config, e)
+	}
+	img, e := png.Decode(bytes.NewReader(p))
+	if e != nil {
+		t.Fatal(e)
+	}
+	gray, ok := img.(*image.Gray)
+	if !ok {
+		t.Fatalf("PNG must use grayscale to bound bitmap memory, got %T", img)
+	}
+	antialiased := false
+	for _, value := range gray.Pix {
+		if value > 0 && value < 255 {
+			antialiased = true
+			break
+		}
+	}
+	if !antialiased {
+		t.Fatal("PNG text lost antialiasing")
 	}
 	pdf, e := PDF(r)
 	if e != nil || !bytes.HasPrefix(pdf, []byte("%PDF-")) {
@@ -73,8 +93,40 @@ func TestPNGLimit(t *testing.T) {
 	for i := range r.Records {
 		r.Records[i] = row
 	}
-	if _, e := PNG(r); e == nil {
-		t.Fatal("unbounded image accepted")
+	var limit *feetable.Error
+	if _, e := PNG(r); !errors.As(e, &limit) || limit.Code != "LIMIT" {
+		t.Fatalf("expected image limit, got %v", e)
+	}
+}
+
+func TestPNGLongReport(t *testing.T) {
+	r := syntheticReport()
+	row := r.Records[1]
+	// Near the original image-height limit, the full report must still export.
+	r.Records = make([]feetable.Record, 436)
+	for i := range r.Records {
+		r.Records[i] = row
+	}
+	r.Count, r.Total = len(r.Records), "43604.36"
+	layout, err := BuildLayout(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := PNG(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(data))
+	if err != nil || config.Width != 1888 || config.Height != layout.Height*2 {
+		t.Fatalf("long report lost resolution or rows: %v, %v", config, err)
+	}
+	if config.Width*config.Height > 80_000_000 {
+		t.Fatal("long report exceeds bitmap budget")
+	}
+	r.Records = append(r.Records, row)
+	var limit *feetable.Error
+	if _, err := PNG(r); !errors.As(err, &limit) || limit.Code != "LIMIT" {
+		t.Fatalf("next row must exceed image limit, got %v", err)
 	}
 }
 
