@@ -93,4 +93,4 @@ v1 的程序不支持 v2 数据库，也会截断小数单价，不能在升级�
 
 日常程序发布与自动回退见 [CICD.md](CICD.md)。它只替换二进制；配置、unit、发布脚本、文档仍由管理员从已审阅提交部署。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
 
-文档同步按 server-operations 的 maintenance 流程：git ls-files 审核 AGENTS.md 和 docs/*.md 白名单，从确认提交 git archive 导出，逐文件安装至 /opt/feetable，最后生成 docs/SOURCE（repository、commit、subdirectory、synced_at）并比对 SHA-256。不要整目录上传工作区。共享清单与入口属于 agent-config，需独立提交、同步 /opt/server-context；未改变的 Ledger 源码和文档无需跟随重写。
+文档提交推送后运行 `~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`，它负责漂移检查、安装到 /opt/feetable、逐文件校验、docs/SOURCE 和清理（用法见 server-operations 的 maintenance）。共享清单与入口属于 agent-config，改动后不带参数运行同一脚本。

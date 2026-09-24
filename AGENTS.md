@@ -8,5 +8,6 @@
 - 修改后执行 make test、go vet ./...、Linux 子路径构建；界面需实测 375×667 与桌面。
 - 部署和服务器操作先读 server-operations 技能，显式执行 ssh ali 'cat /opt/AGENTS.md'；共享服务器文档位于 /opt/server-context。
 - FeeTable 只维护自身的 deploy/location、unit、数据和发布身份。共享配置变更必须核对全部应用。
-- 源配置与 docs 是维护来源；变更后覆盖过时描述，并同步服务器 /opt/feetable/docs、AGENTS.md 和 SOURCE。
-- 数据、备份、私钥、服务器公网地址不能进入 Git。main 推送会运行 CI/CD；提交推送依本次授权执行。
+- 源配置与 docs 是维护来源；变更后覆盖过时描述，推送后运行 agent-config 的 `skills/server-operations/scripts/sync-docs.sh FeeTable` 同步服务器副本。
+- 哪些事直接做完再告知、哪些先确认，只看 server-operations SKILL.md 的授权表；文档维护与同步不需要事先确认。
+- 数据、备份、私钥、服务器公网地址不能进入 Git。main 推送会运行 CI/CD：代码改动只在用户要求部署时推送，纯文档提交加 `[skip ci]`。
