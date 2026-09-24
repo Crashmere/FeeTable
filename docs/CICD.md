@@ -21,7 +21,7 @@ FeeTable 不需要服务器安装 Go、Node、Docker 或 GitHub Runner；主机�
 
 当前 schema 为 v2。首次从 v1 升级须先按 OPERATIONS 完成管理员停服迁移和兼容程序切换，再恢复普通发布；自动回退只适用于兼容当前 schema 的程序。禁止直接部署仅支持 v1 的提交来回退。
 
-文档也不随二进制自动上传。当前任何 main 推送（包括只改 Markdown）都会执行检查和发布；只更新文档且不需要发布时可使用 GitHub 支持的 `[skip ci]` 提交标记，先确认本次确实没有运行代码或部署逻辑改动。共享/项目文档需管理员按 [OPERATIONS.md](OPERATIONS.md) 的同步流程更新服务器副本，不能只推 GitHub 就认为服务器文档已更新。
+任何 main 推送（包括只改 Markdown）都会检查并发布；纯文档提交加 `[skip ci]`，前提是确实没有代码或部署逻辑改动。文档不随程序上传，推送后运行 `sync-docs.sh FeeTable`（见 [OPERATIONS](OPERATIONS.md)）。
 
 ## 权限与密钥
 

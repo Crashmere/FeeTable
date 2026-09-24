@@ -91,6 +91,6 @@ restore 只写一个不存在的新文件，不直接覆盖生产。演练在独
 
 v1 的程序不支持 v2 数据库，也会截断小数单价，不能在升级后直接回退到 v1 程序。升级后应以 v2 兼容程序修复；若确实需要回退数据，必须先按恢复流程确认时点及数据损失。保留升级前备份，不自动覆盖已经接受新写入的数据库。新程序的 check/backup/restore 可读取 v1 备份；恢复后需显式 migrate 到 v2 才能 serve。
 
-日常程序发布与自动回退见 [CICD.md](CICD.md)。它只替换二进制；配置、unit、发布脚本、文档仍由管理员从已审阅提交部署。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
+日常程序发布与自动回退见 [CICD.md](CICD.md)。它只替换二进制；配置、unit、发布脚本由管理员从已推送提交安装，文档用下面的同步脚本。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
 
 文档提交推送后运行 `~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`，它负责漂移检查、安装到 /opt/feetable、逐文件校验、docs/SOURCE 和清理（用法见 server-operations 的 maintenance）。共享清单与入口属于 agent-config，改动后不带参数运行同一脚本。
