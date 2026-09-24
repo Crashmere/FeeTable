@@ -51,4 +51,6 @@ GitHub 仓库 Actions 页面查看测试、构建和 SSH 日志。服务器保�
 
 失败先看 Actions 和 journalctl -u feetable。若日志显示 Previous program is healthy，旧程序已恢复，账本未回退。若显示 ROLLBACK FAILED，按 OPERATIONS.md 排查。手工回退程序也应先停服和备份；数据库恢复需人工确认恢复时点。
 
+deploy 的 SSH 步骤以 exit code 124 结束、最新发布目录为 failed 且没有 metadata，是 GitHub runner 到服务器的上传超时。不要反复重跑，直接按共享的 [GitHub 上传过慢时的备用发布](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#github-上传过慢时的备用发布)处理（服务器副本 `/opt/server-context/references/common-issues.md`），其中也包括残留清理。FeeTable 的参数：产物取自失败的同一次 CI and deploy run，artifact `feetable-linux`，文件 `feetable-linux-amd64`，验收 `/feetable/healthz` 与 `/feetable/tables/1`，不写测试数据。
+
 测试命令 node --test deploy/deploy-release.test.mjs 使用隔离目录和合成命令，覆盖成功、上传哈希错误、候选校验失败、健康检查失败；不会连接生产或读取真实数据，已纳入 make test。
