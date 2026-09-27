@@ -10,7 +10,7 @@ FeeTable 不需要服务器安装 Go、Node、Docker 或 GitHub Runner；主机�
 
 ## 发布做什么
 
-1. CI 构建 make linux BASE_PATH=/feetable/，产物只含程序与内嵌网页，保留 7 天。
+1. CI 构建 make linux BASE_PATH=/feetable/，产物包含程序、内嵌网页及同提交的 portal.json，保留 7 天。
 2. SSH 将程序从标准输入传给受限入口，同时传入代码 commit 和文件 SHA-256。
 3. 服务器限制上传大小 64 MiB、超时 90 秒，校验哈希后才开始切换。
 4. 保存旧程序、停止 FeeTable，用旧程序生成升级前一致性备份。
@@ -27,7 +27,7 @@ FeeTable 不需要服务器安装 Go、Node、Docker 或 GitHub Runner；主机�
 
 production 环境应仅允许 main，保存四个 secrets：SSH_HOST、SSH_USER、SSH_PRIVATE_KEY、SSH_KNOWN_HOSTS。主机公钥经现有受信 SSH 连接核对，部署时开启 StrictHostKeyChecking，不临时盲信 ssh-keyscan。
 
-feetable-deploy 用户的 SSH 公钥设置 restrict 和强制命令，只接受 deploy <commit-sha> <binary-sha256>，不允许 shell、scp、端口转发。home、authorized_keys、两个发布脚本均由 root 管理；sudo 只允许固定 deploy-release.sh。
+feetable-deploy 用户的 SSH 公钥设置 restrict 和强制命令，只接受 deploy、portal-check、portal 三种固定的 commit/SHA-256 命令，不允许 shell、scp、端口转发。home、authorized_keys、两个发布脚本均由 root 管理；sudo 只允许固定 deploy-release.sh。
 
 上传的程序以及备份命令始终以 feetable 用户执行，不以 root 执行。该密钥有发布任意 FeeTable 程序的能力，因此等同于 FeeTable 应用/数据权限，不等同于整台服务器管理员权限。勿把不可信代码合入 main。
 
@@ -54,3 +54,9 @@ GitHub 仓库 Actions 页面查看测试、构建和 SSH 日志。服务器保�
 deploy 的 SSH 步骤以 exit code 124 结束、最新发布目录为 failed 且没有 metadata，是 GitHub runner 到服务器的上传超时。不要反复重跑，直接按共享的 [GitHub 上传过慢时的备用发布](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#github-上传过慢时的备用发布)处理（服务器副本 `/opt/server-context/references/common-issues.md`），其中也包括残留清理。FeeTable 的参数：产物取自失败的同一次 CI and deploy run，artifact `feetable-linux`，文件 `feetable-linux-amd64`，验收 `/feetable/healthz` 与 `/feetable/tables/1`，不写测试数据。
 
 测试命令 node --test deploy/deploy-release.test.mjs 使用隔离目录和合成命令，覆盖成功、上传哈希错误、候选校验失败、健康检查失败；不会连接生产或读取真实数据，已纳入 make test。
+
+## 门户声明随发布同步
+
+verify 作业从固定提交的 agent-config 取得共享校验器，检查 deploy/portal.json 与受限 SSH 协议，产物包含同提交声明。deploy 作业先执行 portal-check 预检；程序发布成功后执行 portal，同步本应用声明并核对门户加载哈希。声明更新失败会使 CI 失败；已经成功发布的业务程序不会因此自动回退，旧声明会保留或恢复，按共享门户维护规则修正后重试。
+
+main 上手动运行时可选 portal_only=true：仍执行测试和声明检查，仅发布门户信息，保留当前程序与 current-commit。常规源码发布使用默认 false。程序健康由服务器回环检查，公网 HTTPS 检查验证无凭据返回 401。完整协议、权限边界、新应用登记与故障处理见 [共享门户维护](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/portal.md)。
