@@ -26,6 +26,8 @@ quantity_milli、unit_price_cents、amount_cents 均为整数。输入十进制�
 
 ## 界面与保存反馈
 
+全站页头使用 `sticky; top: 0` 和不透明背景，正文滚动时品牌与菜单留在顶部；根滚动区预留 104px 顶部定位空间，避免聚焦控件或锚点被页头遮住。手机视口采用浏览器默认安全区布局，不启用 `viewport-fit=cover`；原因和真机验证边界见 [顶部安全区说明](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#iphone-主屏幕页面顶部发虚)。
+
 网站图标将运输货车与明细账单组合，沿用深绿、浅绿和米白配色。源图为 `web/src/assets/icon.svg`，页头与 SVG favicon 共用；`icon-32.png` 是同图的 32×32 浏览器兼容版本，`apple-touch-icon.png` 是铺满深绿底色的 180×180 主屏幕版本。修改源图时同步重新栅格化两份 PNG。图标通过 Vite 作为独立资源输出，文件名含内容哈希，链接随 BASE_PATH 构建，避免更新后命中旧图标缓存。页头图片的空 alt 避免与相邻站名重复朗读。
 
 Home 是月表列表，提供排序和同月合并；地点管理入口位于全站页头右上角三横线菜单，LocationsPage 管理常用地点。菜单支持点击外部、Escape 和页面跳转关闭。TablePage 管理明细与筛选，ExportPage 展示完整报表。手机用记录卡片和竖向表单，电脑用表格；不把宽导出表直接用作编辑界面。合并先选择来源表，再展示条数、金额和来源表移除确认。

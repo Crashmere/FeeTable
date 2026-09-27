@@ -22,6 +22,9 @@
 * {
   box-sizing: border-box;
 }
+html {
+  scroll-padding-top: 104px;
+}
 body {
   margin: 0;
 }
@@ -129,6 +132,10 @@ h2 {
   font-size: 14px;
 }
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #f6f7f2;
   height: 88px;
   max-width: 1200px;
   margin: auto;
