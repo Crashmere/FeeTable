@@ -71,7 +71,7 @@ backup 使用 VACUUM INTO，包含已提交的 WAL 数据并校验生成文件�
     systemctl show feetable-backup.service -p Result -p ExecMainStatus
     runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/backups/<备份文件>.sqlite
 
-数据库与备份不可进入 Git。当前只配置同服务器同盘备份，没有异机备份。发布历史和发布前备份须定期关注磁盘。
+数据库与备份不可进入 Git。自动备份保存在同服务器同盘；2026-09-27 已另取全应用数据归档下载到维护电脑并校验，见 [共享备份说明](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#手工数据归档)。当前没有自动异机同步。发布历史和发布前备份须定期关注磁盘。
 
 ## 恢复与演练
 
