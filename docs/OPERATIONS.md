@@ -1,6 +1,8 @@
 # 运行与维护
 
-FeeTable 在 SSH 别名 ali 对应的服务器上使用独立目录、运行用户、数据库和发布身份。开始操作前读 server-operations 与远端 /opt/AGENTS.md，核对共享应用清单。访问方式为 HTTP /feetable/，用户已确认无登录、知址可读写和导出。公网地址不写入仓库。
+公网入口使用可信 IP 证书的 HTTPS，原有 /feetable/ 路径保持。公网 HTTP 返回 308；API 客户端直接使用 HTTPS。Nginx 覆盖 `X-Forwarded-Proto`；写入来源校验只信任来自回环地址的代理头，仍拒绝跨站来源。证书、续期、回退和整机验收见 [共享 HTTPS 运维](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/https.md)（服务器副本 /opt/server-context/references/https.md）。本项目的后端与发布检查保留本机 HTTP，127.0.0.1:80 的代理检查入口不能从公网访问。HTTPS 只加密传输，登录认证尚未接入。
+
+FeeTable 在 SSH 别名 ali 对应的服务器上使用独立目录、运行用户、数据库和发布身份。开始操作前读 server-operations 与远端 /opt/AGENTS.md，核对共享应用清单。访问方式为 HTTPS /feetable/，用户已确认无登录、知址可读写和导出。公网地址不写入仓库。
 
 ## 运行配置
 
