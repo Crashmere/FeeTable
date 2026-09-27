@@ -1,0 +1,156 @@
+{
+  "id": "feetable",
+  "name": "FeeTable",
+  "description": "运输记录、运费统计与报表。",
+  "icon": "/portal/static/icons/feetable.png",
+  "url": "/feetable/",
+  "repo": "https://github.com/Crashmere/FeeTable",
+  "root": "/opt/feetable",
+  "port": 18081,
+  "user": "feetable",
+  "units": [
+    "feetable.service",
+    "feetable-backup.service",
+    "feetable-backup.timer"
+  ],
+  "database": "/opt/feetable/data/feetable.sqlite",
+  "backupKind": "sqlite",
+  "resources": [
+    {
+      "id": "data",
+      "name": "业务数据",
+      "path": "/opt/feetable/data",
+      "purpose": "数据库、图片与历史迁移材料；临时文件不属于恢复数据。",
+      "kind": "data",
+      "browse": true,
+      "cleanup": false
+    },
+    {
+      "id": "backups",
+      "name": "数据备份",
+      "path": "/opt/feetable/backups",
+      "purpose": "daily、manual 与 before-deploy 一致性快照。",
+      "kind": "backups",
+      "browse": true,
+      "cleanup": true
+    },
+    {
+      "id": "releases",
+      "name": "部署版本",
+      "path": "/opt/feetable/releases",
+      "purpose": "程序、发布结果与 previous 回退材料。",
+      "kind": "releases",
+      "browse": true,
+      "cleanup": true
+    },
+    {
+      "id": "config",
+      "name": "运行配置",
+      "path": "/opt/feetable/config",
+      "purpose": "环境配置、systemd、Nginx 与资源声明；不直接展示秘密。",
+      "kind": "config",
+      "browse": false,
+      "cleanup": false
+    },
+    {
+      "id": "bin",
+      "name": "服务程序",
+      "path": "/opt/feetable/bin",
+      "purpose": "当前应用程序及固定维护/发布脚本。",
+      "kind": "binaries",
+      "browse": false,
+      "cleanup": false
+    },
+    {
+      "id": "docs",
+      "name": "维护文档",
+      "path": "/opt/feetable/docs",
+      "purpose": "架构、API、运维与恢复说明。",
+      "kind": "documents",
+      "browse": true,
+      "cleanup": false
+    }
+  ],
+  "apis": [
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "description": "数据库连接检查"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tables?page=1&sort=updated_desc",
+      "description": "月表列表、条数、金额，30 条/页；可附 year/month 筛选"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tables",
+      "description": "创建，year/month 必填"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tables/{id}?page=1&tag=名称",
+      "description": "表格、明细、全部标签、筛选条数/合计，50 条/页"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/tables/{id}",
+      "description": "修改 year/month，revision 必须匹配"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/tables/{id}?revision=版本",
+      "description": "删除表格与明细"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tables/{id}/merge",
+      "description": "将同年月的来源表合并到 id 保留表"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tables/{id}/records",
+      "description": "新增明细"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/tables/{id}/records/{record}",
+      "description": "完整更新明细"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/tables/{id}/records/{record}?revision=版本",
+      "description": "删除明细"
+    },
+    {
+      "method": "GET",
+      "path": "/api/locations、GET",
+      "description": "常用词条，按累计使用次数排序"
+    },
+    {
+      "method": "POST",
+      "path": "/api/locations、POST",
+      "description": "body 为 name，已存在时不重复创建"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/locations/{id}",
+      "description": "地点改名，body 为 name、previousName"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/locations/{id}?name=原名称",
+      "description": "删除常用地点，以原名称检查并发修改"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tables/{id}/report?tag=名称",
+      "description": "完整导出数据与 revision"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tables/{id}/export?format=png&revision=版本&tag=名称",
+      "description": "下载；format 为 png/pdf/xlsx；inline=1 可内联打开"
+    }
+  ]
+}
