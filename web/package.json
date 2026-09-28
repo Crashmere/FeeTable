@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vue-tsc --noEmit && vite build",
-    "typecheck": "vue-tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "vue": "3.5.42",
@@ -18,7 +17,6 @@
     "prettier": "3.6.2",
     "typescript": "5.9.3",
     "vite": "8.3.0",
-    "vitest": "5.0.1",
     "vue-tsc": "3.3.11"
   }
 }

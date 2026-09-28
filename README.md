@@ -18,7 +18,6 @@
 需要 go.mod 指定的 Go 工具链和 Node.js 24 或更高版本。依赖版本锁定在 go.sum 和 web/package-lock.json。
 
 ```sh
-npm --prefix web ci
 go mod download
 go run ./cmd/feetable init --db var/dev.sqlite
 make build
@@ -30,8 +29,6 @@ make build
 前端开发可在两个终端分别运行 `make dev` 和 `npm --prefix web run dev`，由 Vite 将 API 请求代理到 8081。
 
 ```sh
-make test
-go vet ./...
 make linux BASE_PATH=/feetable/
 ```
 
@@ -45,4 +42,8 @@ Linux 产物为 `bin/feetable-linux-amd64`，服务器不需要编译器、前�
 
 ## 维护文档
 
-从 [docs/README.md](docs/README.md) 阅读架构、API、运维和 CI。中文字体的来源与许可见 [字体说明](internal/export/fonts/README.md)。
+从 [docs/README.md](docs/README.md) 阅读架构、API、运维和发布。中文字体的来源与许可见 [字体说明](internal/export/fonts/README.md)。
+
+日常发布与验证按 [本机发布说明](docs/DEPLOYMENT.md) 执行；GitHub 只作源码备份。
+
+本地开发前运行 `npm --prefix web ci` 安装锁定依赖；正式发布的 `make release` 会在隔离快照中自动安装依赖并构建。

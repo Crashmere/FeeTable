@@ -5,7 +5,7 @@
 | 数据、请求、金额与导出 | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | API 与错误约定 | [API.md](API.md) |
 | 安装、运行、备份、恢复 | [OPERATIONS.md](OPERATIONS.md) |
-| 自动检查、发布与回退 | [CICD.md](CICD.md) |
+| 本机发布与回退 | [DEPLOYMENT.md](DEPLOYMENT.md) |
 
 ## 已确认的业务边界
 
@@ -24,3 +24,5 @@
 每张表最多 5,000 条记录，每个名称最多 80 字符；数量的千分值、金额的分值绝对值不超过 10¹²；单价不超过 10¹⁰ 元。PNG 默认 3 倍分辨率，长表使用 2 倍，实际图片上限 8,000 万像素；服务同时只渲染一个导出文件。
 
 共享服务器维护入口是 [server-operations](https://github.com/Crashmere/agent-config/tree/main/skills/server-operations)，现场副本 `/opt/server-context`。精确部署事实见 OPERATIONS；不把规划写作已部署。
+
+日常发布与验证按 [本机发布说明](DEPLOYMENT.md) 执行；GitHub 只作源码备份。

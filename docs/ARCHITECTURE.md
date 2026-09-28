@@ -52,4 +52,4 @@ PNG 与 PDF 共用布局：七列、合并标题与表头、固定宽度、长�
 
 BASE_PATH 同时决定 Vite 资源、路由 history base 与 API 前缀；Nginx proxy_pass 尾斜线去掉 /feetable/，Go 接收 /api、/assets 等内部路径。未知页面返回 index.html，未知静态文件返回 404。
 
-go:embed 将生产网页和中文字体打包进二进制。正常服务器不运行 Node、Go 编译器或外部数据库。测试位于各 Go 包、money.test.ts 和 deploy-release.test.mjs，使用隔离合成数据。
+go:embed 将生产网页和中文字体打包进二进制。正常服务器不运行 Node、Go 编译器或外部数据库。

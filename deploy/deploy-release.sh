@@ -12,7 +12,7 @@ if [[ $EUID -eq 0 && $# -eq 3 && ( $1 == portal || $1 == portal-check ) && $2 =~
 fi
 
 
-# 此脚本由 root 安装和维护；CI 可发送程序和受校验的本应用声明，不能更新本脚本。
+# 此脚本由 root 安装和维护；本机可发送程序和受校验的本应用声明，不能更新本脚本。
 if [[ $EUID -ne 0 || $# -ne 2 || ! $1 =~ ^[0-9a-f]{40}$ || ! $2 =~ ^[0-9a-f]{64}$ ]]; then
   printf 'Usage: deploy-release.sh <commit-sha> <binary-sha256> < binary\n' >&2
   exit 64

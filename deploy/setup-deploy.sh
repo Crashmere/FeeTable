@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ $EUID -ne 0 || $# -ne 1 ]]; then
-  printf 'Usage: sudo bash deploy/setup-ci.sh <deploy-public-key.pub>\n' >&2; exit 64
+  printf 'Usage: sudo bash deploy/setup-deploy.sh <deploy-public-key.pub>\n' >&2; exit 64
 fi
 public_key=$(realpath "$1")
 scripts=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -11,7 +11,7 @@ if [[ $(wc -l < "$public_key") -ne 1 ]] || ! grep -q '^ssh-ed25519 ' "$public_ke
 fi
 test -x /opt/feetable/bin/feetable
 if id feetable-deploy >/dev/null 2>&1 || [[ -e /etc/sudoers.d/feetable-deploy ]]; then
-  printf 'CI user already exists; rotate its key explicitly instead of rerunning setup.\n' >&2; exit 1
+  printf 'Deployment user already exists; rotate its key explicitly instead of rerunning setup.\n' >&2; exit 1
 fi
 useradd --system --home-dir /opt/feetable/deploy-user --shell /bin/bash feetable-deploy
 # 用户不能改 home、authorized_keys、强制命令或 root 发布脚本。

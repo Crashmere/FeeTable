@@ -23,11 +23,8 @@ FeeTable 在 SSH 别名 ali 对应的服务器上使用独立目录、运行用�
 
 ## 从源码首次安装
 
-本地或受信 CI 需要 go.mod 指定的 Go 工具链、Node 24+、npm。服务器运行单个 Linux amd64 程序，无需安装 Go、Node、Docker 或数据库服务。
+本地 需要 go.mod 指定的 Go 工具链、Node 24+、npm。服务器运行单个 Linux amd64 程序，无需安装 Go、Node、Docker 或数据库服务。
 
-    npm --prefix web ci
-    make test
-    go vet ./...
     make linux BASE_PATH=/feetable/
     sha256sum bin/feetable-linux-amd64
 
@@ -45,7 +42,7 @@ macOS 可用 shasum -a 256。仅将校验过的 Linux 产物和已审阅提交�
 
 这次系统从空库开始。init 只创建不存在的目标；serve 永不自动创建数据库。install.sh 拒绝覆盖已有安装，restore 生成独立一致性副本。共享 Nginx server 由 server-operations 管理，不用本项目替换。若 nginx -t 失败，只撤回本次新增的 location 链接并调查，不重载无效配置。
 
-首次安装后，按 CICD 配置独立发布密钥并完成一次 CI 发布。current-commit 由发布脚本在健康检查成功后写入；不要把文档提交误写成运行版本。
+首次安装后，按 DEPLOYMENT 配置独立发布密钥并完成一次 本机发布。current-commit 由发布脚本在健康检查成功后写入；不要把文档提交误写成运行版本。
 
 ## 验收和排障
 
@@ -89,26 +86,32 @@ restore 只写一个不存在的新文件，不直接覆盖生产。演练在独
 1. 从已验证提交构建候选程序，核对哈希。用现有程序备份，并先在恢复出的独立副本上运行候选程序的 migrate、check 和 serve，验证可启动。
 2. 持有 /run/lock/feetable-deploy.lock，暂停备份 timer，确认备份 service 已结束，再停止 feetable。用现有程序生成最终升级前备份并校验。
 3. 以 feetable 用户运行候选程序的 migrate --db /opt/feetable/data/feetable.sqlite，再运行 check。升级在单一事务中完成；失败回滚事务，不会留下部分新表。原始分值直接保留，不乘除已有单价。
-4. 安装候选程序后启动服务，检查本机和代理健康，更新 current-commit，恢复备份 timer，再进行普通 CI 发布。
+4. 安装候选程序后启动服务，检查本机和代理健康，更新 current-commit，恢复备份 timer，再进行普通 本机发布。
 
 v1 的程序不支持 v2 数据库，也会截断小数单价，不能在升级后直接回退到 v1 程序。升级后应以 v2 兼容程序修复；若确实需要回退数据，必须先按恢复流程确认时点及数据损失。保留升级前备份，不自动覆盖已经接受新写入的数据库。新程序的 check/backup/restore 可读取 v1 备份；恢复后需显式 migrate 到 v2 才能 serve。
 
-日常程序发布与自动回退见 [CICD.md](CICD.md)。它只替换二进制；配置、unit、发布脚本由管理员从已推送提交安装，文档用下面的同步脚本。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
+日常程序发布与自动回退见 [DEPLOYMENT.md](DEPLOYMENT.md)。它只替换二进制；配置、unit、发布脚本由管理员从已推送提交安装，文档用下面的同步脚本。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
 
 文档提交推送后运行 `~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`，它负责漂移检查、安装到 /opt/feetable、逐文件校验、docs/SOURCE 和清理（用法见 server-operations 的 maintenance）。共享清单与入口属于 agent-config，改动后不带参数运行同一脚本。
 
 ## ServerPortal 接入材料
 
-`deploy/portal.json` 是本应用资源说明的维护源。CI 使用固定提交的 server-operations 校验器检查，再将同一声明与二进制一同保存为 artifact；发布前执行 `portal-check`，发布后执行 `portal`，通过现有受限 SSH 安装到 `/opt/feetable/config/portal.json` 并核对采集器实际加载的 SHA-256。`config/portal-source.json` 记录声明来源提交；它与程序的 current-commit 各自表示不同材料的版本。
+`deploy/portal.json` 是本应用资源说明的维护源。本机发布使用 server-operations 校验器检查，再将同一声明与二进制保存到同一本地版本目录；发布前执行 `portal-check`，发布后执行 `portal`，通过现有受限 SSH 安装到 `/opt/feetable/config/portal.json` 并核对采集器实际加载的 SHA-256。`config/portal-source.json` 记录声明来源提交；它与程序的 current-commit 各自表示不同材料的版本。
 
-门户从 `/opt/serverportal/registry.d/feetable.json` 的受控链接发现本应用，声明成功更新后自动加载，无需重启。首次正常 CI 发布也会建立链接，无需再编辑门户中央应用列表。普通发布可更新本应用的声明，其他 unit/env/Nginx/发布脚本仍由管理员安装。
+门户从 `/opt/serverportal/registry.d/feetable.json` 的受控链接发现本应用，声明成功更新后自动加载，无需重启。首次正常 本机发布也会建立链接，无需再编辑门户中央应用列表。普通发布可更新本应用的声明，其他 unit/env/Nginx/发布脚本仍由管理员安装。
 
-只改门户名称、目录用途、API 说明等元数据时，在 main 上手动运行 CI and deploy，设置 `portal_only=true`；仍执行验证与声明生效检查，但不替换程序、不停止业务服务、不创建发布前数据快照。源码或数据库行为变更不能使用该选项代替程序发布。
+源码或数据库行为变更不能使用该选项代替程序发布。
 
 数据根、媒体、备份格式、unit、端口或访问路径变化时，同一提交维护声明及对应文档，更新共享清单并核对资源覆盖。文件、媒体、数据库表和 systemd 状态由门户自动读取；目录用途、API 说明和权限边界须由维护 agent 明确更新。共同协议、失败处置与新应用接入见 [门户维护](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/portal.md)。
 
-门户 /portal/ 已统一保护公网访问，发布脚本通过回环检查应用健康，CI 公网检查预期未授权返回 401。设备授权永久有效至主动撤销，Cookie 经共享 Nginx 随有效请求续期；本应用若新增 add_header，必须保留共享 Set-Cookie 转发，规则及验收见共享门户维护文档。门户备份使用本应用原生一致性快照；真实完整链恢复验收按用户要求暂缓，不因本次维护自动继续下载或恢复。
+门户 /portal/ 已统一保护公网访问，发布脚本通过回环检查应用健康，本机发布公网检查预期未授权返回 401。设备授权永久有效至主动撤销，Cookie 经共享 Nginx 随有效请求续期；本应用若新增 add_header，必须保留共享 Set-Cookie 转发，规则及验收见共享门户维护文档。门户备份使用本应用原生一致性快照；真实完整链恢复验收按用户要求暂缓，不因本次维护自动继续下载或恢复。
 
 ## 手机桌面图标
 
 现有 180×180 图标由 web/src/assets/apple-touch-icon.png 构建为带哈希的 /feetable/assets/apple-touch-icon-<hash>.png。Nginx 规则按三个品牌图标名称匹配哈希，不固定单次构建文件名，也不开放整个 assets。页面、API 和用户媒体继续使用设备认证。共同原因、部署状态与手机验收见[共享排障记录](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#统一认证后-iphone-桌面图标缺失)。
+
+## 当前发布入口
+
+本项目为个人使用：在本地验证本次改动即可发布，不设全量回归门槛，不默认新增或保留永久测试。界面改动检查实际使用的电脑/手机场景；数据迁移、批量写入/删除和备份恢复先用隔离副本针对性验证。
+
+完整流程见 [本机发布与回退](DEPLOYMENT.md)。GitHub 只保存源码；本机 `make release` 构建，`make deploy` 更新生产，文档单独同步。

@@ -1,0 +1,12 @@
+{
+  "app": "feetable",
+  "build": [
+    "make",
+    "linux",
+    "BASE_PATH=/feetable/"
+  ],
+  "binary": "bin/feetable-linux-amd64",
+  "portal": true,
+  "restricted": true,
+  "gzip": false
+}
