@@ -79,8 +79,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/tables?page=1&sort=updated_desc",
-      "description": "月表列表、条数、金额，30 条/页；可附 year/month 筛选"
+      "path": "/api/tables",
+      "description": "月表列表、条数、金额，30 条/页；查询参数 page（默认 1）、sort（默认 updated_desc），可附 year/month 筛选"
     },
     {
       "method": "POST",
@@ -89,8 +89,8 @@
     },
     {
       "method": "GET",
-      "path": "/api/tables/{id}?page=1&tag=名称",
-      "description": "表格、明细、全部标签、筛选条数/合计，50 条/页"
+      "path": "/api/tables/{id}",
+      "description": "表格、明细、全部标签、筛选条数/合计，50 条/页；查询参数 page（默认 1）、tag（可选）"
     },
     {
       "method": "PUT",
@@ -99,8 +99,8 @@
     },
     {
       "method": "DELETE",
-      "path": "/api/tables/{id}?revision=版本",
-      "description": "删除表格与明细"
+      "path": "/api/tables/{id}",
+      "description": "删除表格与明细，查询参数 revision 必须匹配当前表格版本"
     },
     {
       "method": "POST",
@@ -110,27 +110,37 @@
     {
       "method": "POST",
       "path": "/api/tables/{id}/records",
-      "description": "新增明细"
+      "description": "新增明细，body 包含当前表格 revision"
     },
     {
       "method": "PUT",
       "path": "/api/tables/{id}/records/{record}",
-      "description": "完整更新明细"
+      "description": "完整更新明细，body 包含当前表格 revision"
     },
     {
       "method": "DELETE",
-      "path": "/api/tables/{id}/records/{record}?revision=版本",
-      "description": "删除明细"
+      "path": "/api/tables/{id}/records/{record}",
+      "description": "删除明细，查询参数 revision 必须匹配当前表格版本"
     },
     {
       "method": "GET",
-      "path": "/api/locations、GET",
-      "description": "常用词条，按累计使用次数排序"
+      "path": "/api/locations",
+      "description": "常用地点，按累计使用次数排序"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tags",
+      "description": "常用标签，按累计使用次数排序"
     },
     {
       "method": "POST",
-      "path": "/api/locations、POST",
-      "description": "body 为 name，已存在时不重复创建"
+      "path": "/api/locations",
+      "description": "添加常用地点，body 为 {name}，已存在时不重复创建"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tags",
+      "description": "添加常用标签，body 为 {name}，已存在时不重复创建"
     },
     {
       "method": "PUT",
@@ -139,18 +149,18 @@
     },
     {
       "method": "DELETE",
-      "path": "/api/locations/{id}?name=原名称",
-      "description": "删除常用地点，以原名称检查并发修改"
+      "path": "/api/locations/{id}",
+      "description": "删除常用地点，查询参数 name 为原名称，用于检查并发修改"
     },
     {
       "method": "GET",
-      "path": "/api/tables/{id}/report?tag=名称",
-      "description": "完整导出数据与 revision"
+      "path": "/api/tables/{id}/report",
+      "description": "完整导出数据与 revision；可选查询参数 tag，不分页"
     },
     {
       "method": "GET",
-      "path": "/api/tables/{id}/export?format=png&revision=版本&tag=名称",
-      "description": "下载；format 为 png/pdf/xlsx；inline=1 可内联打开"
+      "path": "/api/tables/{id}/export",
+      "description": "下载；查询参数 format 为 png/pdf/xlsx，可选 revision、tag，inline=1 可内联打开"
     }
   ]
 }
