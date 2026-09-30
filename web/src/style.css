@@ -102,12 +102,8 @@ button:disabled {
   background: #edf1e8;
   color: var(--green);
 }
-input:focus,
-select:focus,
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid #68895b;
-  outline-offset: 3px;
+:focus {
+  outline: none;
 }
 h1,
 h2,

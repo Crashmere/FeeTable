@@ -6,6 +6,7 @@ import TablePage from "./pages/TablePage.vue";
 import ExportPage from "./pages/ExportPage.vue";
 import LocationsPage from "./pages/LocationsPage.vue";
 import "./style.css";
+import "./keyboard";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
