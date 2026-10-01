@@ -4,6 +4,8 @@
 
 FeeTable 在 SSH 别名 ali 对应的服务器上使用独立目录、运行用户、数据库和发布身份。开始操作前读 server-operations 与远端 /opt/AGENTS.md，核对共享应用清单。访问方式为 HTTPS /feetable/，已接入统一设备认证，授权设备可读写和导出。公网地址不写入仓库。
 
+请求大小：Nginx 上限 2 MiB，业务 JSON 上限 64 KiB。共享认证的默认 1 MiB 问题不影响正常业务输入；认证配置维护与大请求检查见[统一认证误拦大请求](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#统一认证误拦大请求)。
+
 ## 运行配置
 
 | 项目 | 配置 |
