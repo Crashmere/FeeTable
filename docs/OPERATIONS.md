@@ -64,7 +64,7 @@ macOS 可用 shasum -a 256。仅将校验过的 Linux 产物和已审阅提交�
 
 ## 一致性备份
 
-backup 使用 VACUUM INTO，包含已提交的 WAL 数据并校验生成文件。禁止只复制活动数据库主文件。每日备份成功后保留最新 14 份 daily；手工、发布前备份另存且不自动轮换。
+backup 使用 VACUUM INTO，包含已提交的 WAL 数据并校验生成文件。禁止只复制活动数据库主文件。每日备份成功后保留最新 14 份 daily；发布前备份按共享发布保留策略轮换，手工备份不自动清理。
 
     systemctl start feetable-backup.service
     systemctl show feetable-backup.service -p Result -p ExecMainStatus
@@ -117,3 +117,7 @@ v1 的程序不支持 v2 数据库，也会截断小数单价，不能在升级�
 本项目为个人使用：在本地验证本次改动即可发布，不设全量回归门槛，不默认新增或保留永久测试。界面改动检查实际使用的电脑/手机场景；数据迁移、批量写入/删除和备份恢复先用隔离副本针对性验证。
 
 完整流程见 [本机发布与回退](DEPLOYMENT.md)。GitHub 只保存源码；本机 `make release` 构建，`make deploy` 更新生产，文档单独同步。
+
+## 发布材料自动清理
+
+服务器每天北京时间 05:00 按[发布材料自动保留](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md)保留最近 3 次成功发布、最近 5 份完整发布前备份，并保护当前版本、对应备份和待核对失败批次。共享实现、锁、回执、预览及停用命令由 server-operations 维护；本项目 deploy 保留发布脚本的 recovery 标记和每日备份的 flock 入口。首次安装先按共享文档建立 /run/lock/ali-release-retention.lock，再启用 backup timer。daily、manual、业务数据、门户 exports 和维护电脑构建材料不在此自动清理范围。

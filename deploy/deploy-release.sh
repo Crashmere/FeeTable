@@ -46,7 +46,9 @@ wait_healthy() {
 finish() {
   result=$?
   trap - EXIT HUP INT TERM
+  recovery_status=not-needed
   if [[ $result -ne 0 && $stopped == true ]]; then
+    recovery_status=failed
     printf 'Deployment failed; restarting the previous program. Database is not restored.\n' >&2
     systemctl stop feetable || true
     if [[ $replaced == true ]]; then
@@ -54,11 +56,13 @@ finish() {
       mv -f "$app/bin/feetable.rollback" "$app/bin/feetable"
     fi
     if systemctl start feetable && wait_healthy; then
+      recovery_status=healthy
       printf 'Previous program is healthy.\n' >&2
     else
       printf 'ROLLBACK FAILED: inspect journalctl -u feetable.\n' >&2
     fi
   fi
+  printf '%s\n' "$recovery_status" > "$release/recovery"
   if [[ $result -eq 0 ]]; then printf 'success\n' > "$release/result";
   else printf 'failed\n' > "$release/result"; fi
   exit "$result"
