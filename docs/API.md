@@ -1,61 +1,61 @@
 # HTTP API
 
-以下是 Go 服务内部路径，`{id}`、`{record}` 为路径参数。部署后外部路径统一增加 `/feetable`，Nginx 去前缀后转发。公网 API 由 ServerPortal 统一设备认证保护，未授权返回 401；本机回环调用保留。JSON 响应禁用缓存，浏览器写请求另检查 Origin 的协议、Host 与请求是否一致。
+The following are internal paths of the Go service; `{id}` and `{record}` are path parameters. After deployment, external paths all receive the `/feetable` prefix, which Nginx removes before forwarding. Public APIs are protected by ServerPortal's shared device authentication and return 401 when unauthorized; local loopback calls remain available. JSON responses disable caching. Browser write requests additionally verify that Origin has the same scheme and Host as the request.
 
-| 方法与路径 | 用途 |
+| Method and path | Purpose |
 | --- | --- |
-| GET /healthz | 数据库连接检查 |
-| GET /api/tables | 月表列表、条数、金额，30 条/页；查询参数 page（默认 1）、sort（默认 updated_desc），可附 year/month 筛选 |
-| POST /api/tables | 创建，year/month 必填 |
-| GET /api/tables/{id} | 表格、明细、全部标签、筛选条数/合计，50 条/页；查询参数 page（默认 1）、tag（可选） |
-| PUT /api/tables/{id} | 修改 year/month，revision 必须匹配 |
-| DELETE /api/tables/{id} | 删除表格与明细，查询参数 revision 必须匹配当前表格版本 |
-| POST /api/tables/{id}/merge | 将同年月的来源表合并到 id 保留表 |
-| POST /api/tables/{id}/records | 新增明细，body 包含当前表格 revision |
-| PUT /api/tables/{id}/records/{record} | 完整更新明细，body 包含当前表格 revision |
-| DELETE /api/tables/{id}/records/{record} | 删除明细，查询参数 revision 必须匹配当前表格版本 |
-| GET /api/locations | 常用地点，按累计使用次数排序 |
-| GET /api/tags | 常用标签，按累计使用次数排序 |
-| POST /api/locations | 添加常用地点，body 为 {name}，已存在时不重复创建 |
-| POST /api/tags | 添加常用标签，body 为 {name}，已存在时不重复创建 |
-| PUT /api/locations/{id} | 地点改名，body 为 name、previousName |
-| DELETE /api/locations/{id} | 删除常用地点，查询参数 name 为原名称，用于检查并发修改 |
-| GET /api/tables/{id}/report | 完整导出数据与 revision；可选查询参数 tag，不分页 |
-| GET /api/tables/{id}/export | 下载；查询参数 format 为 png/pdf/xlsx，可选 revision、tag，inline=1 可内联打开 |
+| GET /healthz | Check the database connection |
+| GET /api/tables | List monthly tables, record counts, and amounts, 30 per page; query parameters: `page` (default 1), `sort` (default `updated_desc`), with optional `year`/`month` filtering |
+| POST /api/tables | Create a table; `year` and `month` are required |
+| GET /api/tables/{id} | Return the table, records, all tags, and filtered count/total, 50 records per page; query parameters: `page` (default 1), `tag` (optional) |
+| PUT /api/tables/{id} | Change `year`/`month`; `revision` must match |
+| DELETE /api/tables/{id} | Delete the table and its records; query parameter `revision` must match the current table version |
+| POST /api/tables/{id}/merge | Merge source tables for the same year and month into the retained table identified by `id` |
+| POST /api/tables/{id}/records | Add a record; the body includes the current table `revision` |
+| PUT /api/tables/{id}/records/{record} | Fully update a record; the body includes the current table `revision` |
+| DELETE /api/tables/{id}/records/{record} | Delete a record; query parameter `revision` must match the current table version |
+| GET /api/locations | List common locations, sorted by cumulative usage count |
+| GET /api/tags | List common tags, sorted by cumulative usage count |
+| POST /api/locations | Add a common location; body is `{name}`; do not create a duplicate if it already exists |
+| POST /api/tags | Add a common tag; body is `{name}`; do not create a duplicate if it already exists |
+| PUT /api/locations/{id} | Rename a location; body contains `name` and `previousName` |
+| DELETE /api/locations/{id} | Delete a common location; query parameter `name` is the original name and is used to detect concurrent modification |
+| GET /api/tables/{id}/report | Return complete export data and `revision`; optional query parameter `tag`; not paginated |
+| GET /api/tables/{id}/export | Download; query parameter `format` is `png`, `pdf`, or `xlsx`; optional `revision` and `tag`; `inline=1` permits inline opening |
 
-本表覆盖当前业务与健康接口；门户的 `deploy/portal.json.apis` 与本表保持一致。每个方法和路径单独登记，查询参数写在用途和下文契约中。 核对与同步流程见[共享排障说明](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#门户-api-列表与服务不一致)。
+This table covers the current business and health interfaces; keep `deploy/portal.json.apis` consistent with it. Register each method and path separately. Query parameters are documented in the purpose column and the contracts below. See the [shared troubleshooting guidance](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#portal-api-list-does-not-match-the-service) for checking and synchronization procedures.
 
-## 月表排序、合并与地点管理
+## Monthly Table Sorting, Merging, and Location Management
 
-sort 可为 updated_desc（默认）、updated_asc、month_desc、month_asc，分别表示修改时间或表格年月倒序/正序。year/month 必须同时传入且有效，筛选后的 total 与分页一致；不支持的排序返回 400。
+`sort` may be `updated_desc` (default), `updated_asc`, `month_desc`, or `month_asc`, representing descending/ascending modification time or table year and month. `year` and `month` must be supplied together and be valid. The filtered `total` must agree with pagination; unsupported sorting returns 400.
 
-合并请求包含 revision 和 sources 数组；每个来源项包含 id、revision。路径 id 是保留表，顶层 revision 是它的版本；sources 包含 1–99 个不同来源表及各自版本，不能含保留表。成功返回保留表的新 revision、记录数与总额，来源表随后返回 404。年月必须全部相同，合计记录不超过 5,000 条；任意版本冲突返回 409，缺失表返回 404，全部操作原子回滚。记录包括重复内容均完整迁入。
+A merge request contains `revision` and a `sources` array; each source entry contains `id` and `revision`. The path `id` identifies the retained table, and the top-level `revision` is its version. `sources` contains 1–99 distinct source tables and their versions and cannot contain the retained table. Success returns the retained table's new `revision`, record count, and total amount; source tables subsequently return 404. All years and months must match, and the combined records must not exceed 5,000. Any version conflict returns 409, a missing table returns 404, and every operation rolls back atomically. All records, including duplicate content, are moved in full.
 
-地点改名、删除保留已有记录快照；改名保留使用次数，重复名称返回 400。previousName/name 必须匹配服务器当前名称，否则 409；不存在的地点返回 404。删除的名称以后再次用于保存记录时会重新加入地点库。
+Renaming or deleting a location preserves snapshots in existing records. Renaming preserves the usage count and returns 400 for a duplicate name. `previousName`/`name` must match the server's current name or the request returns 409; a missing location returns 404. If a deleted name is later used to save a record, it is added to the location library again.
 
-## 记录输入
+## Record Input
 
-所有字段必传，unitPrice/tag 可以为 null，其他字段不能为 null。日期必须属于表格年月，名称 1–80 字符。数值使用普通十进制字符串，不接受指数、NaN、Infinity 或分组逗号。
+Every field is required. `unitPrice` and `tag` may be null; other fields may not. The date must belong to the table's year and month, and names must be 1–80 characters. Numeric values use ordinary decimal strings; exponent notation, NaN, Infinity, and grouping commas are not accepted.
 
 ```json
 {
   "day": 3,
-  "location1": "测试起点",
-  "location2": "测试终点",
+  "location1": "Test origin",
+  "location2": "Test destination",
   "quantity": "0.145",
   "unitPrice": "1",
   "amount": "0.15",
-  "tag": "测试标签",
+  "tag": "Test tag",
   "revision": 1
 }
 ```
 
-unitPrice 非 null 时按 quantity 计算，amount 仅作完整表单字段，不决定保存金额；unitPrice=null 时使用 amount。金额与数量响应固定两位/三位小数，单价响应固定两位小数字符串。单价输入允许非负整数或最多两位小数（例如 "2.88"）；数量和固定金额允许负数及零。revision 是所属表格的版本，不是明细自己的版本。
+When `unitPrice` is non-null, the amount is calculated from `quantity`; `amount` is required only as part of the complete form and does not determine the saved amount. When `unitPrice=null`, `amount` is used. Amount and quantity responses use fixed two- and three-decimal strings, respectively; unit-price responses use fixed two-decimal strings. Unit-price input allows a nonnegative integer or at most two decimal places (for example, `"2.88"`); quantity and fixed amounts allow negative values and zero. `revision` is the containing table's version, not the record's own version.
 
-写成功返回已保存实体或 `{"ok":true}`。客户端随后重读表格取得新 revision。tag 以 URLSearchParams 编码，省略表示全部记录，传入则精确匹配；标签中的斜线等字符不是路由路径。
+A successful write returns the saved entity or `{"ok":true}`. The client then rereads the table to obtain the new `revision`. `tag` is encoded with `URLSearchParams`; omitting it means all records, while supplying it performs an exact match. Slashes and similar characters in tags are not route paths.
 
-## 错误
+## Errors
 
-应用错误结构为 `{"error":{"code":"VALIDATION","message":"说明"}}`。400 为字段/日期/格式错误，403 为写请求来源不符，404 为不存在，409 为版本冲突，422 为导出尺寸限制，429 为渲染繁忙，500 为内部失败；公网设备认证失败由共享入口返回 401。写入网络失败或 500 不能自动重试，应先查看服务器是否已保存。
+Application errors have the shape `{"error":{"code":"VALIDATION","message":"description"}}`. Status 400 means a field/date/format error; 403, a mismatched write-request origin; 404, not found; 409, a version conflict; 422, an export-size limit; 429, renderer busy; and 500, an internal failure. The shared public entry point returns 401 for device-authentication failure. A network failure or 500 during a write must not be retried automatically; first check whether the server saved it.
 
-每次 JSON 输入上限 64 KiB。导出响应带明确 MIME、Content-Disposition 和 no-store；提交非零 revision 且与当前版本不同时返回 409，省略或为 0 时不做该检查。客户端从预览取得 revision 后应原样提交。空筛选集拒绝导出，页面关闭相应下载按钮。
+Each JSON input is limited to 64 KiB. Export responses include an explicit MIME type, `Content-Disposition`, and `no-store`. A submitted nonzero `revision` that differs from the current version returns 409; omitting it or supplying 0 skips that check. The client should submit the `revision` from the preview unchanged. An empty filtered set cannot be exported, and the page disables the corresponding download buttons.

@@ -1,38 +1,38 @@
-# 运行与维护
+# Operations and Maintenance
 
-公网入口使用可信 IP 证书的 HTTPS，原有 /feetable/ 路径保持。公网 HTTP 返回 308；API 客户端直接使用 HTTPS。Nginx 覆盖 `X-Forwarded-Proto`；写入来源校验只信任来自回环地址的代理头，仍拒绝跨站来源。证书、续期、回退和整机验收见 [共享 HTTPS 运维](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/https.md)（服务器副本 /opt/server-context/references/https.md）。本项目的后端与发布检查保留本机 HTTP，127.0.0.1:80 的代理检查入口不能从公网访问。公网已接入 ServerPortal 统一设备认证：先在 /portal/login 输入口令授权设备，随后使用同源 Secure/HttpOnly Cookie 访问；未授权 API 返回 401。本机发布检查与服务间调用保留。
+The public entry point uses HTTPS with a trusted IP certificate, preserving the existing `/feetable/` path. Public HTTP returns 308; API clients use HTTPS directly. Nginx overwrites `X-Forwarded-Proto`; write-origin validation trusts proxy headers only from loopback addresses and still rejects cross-site origins. See [shared HTTPS operations](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/https.md) (server copy: `/opt/server-context/references/https.md`) for certificates, renewal, rollback, and whole-server acceptance. This project's backend and deployment checks retain local HTTP. The proxy-inspection entry point at `127.0.0.1:80` is not publicly reachable. Public access uses ServerPortal's shared device authentication: enter the passphrase at `/portal/login` to authorize a device, then use the same-origin Secure/HttpOnly Cookie. Unauthorized APIs return 401. Local deployment checks and service-to-service calls remain available.
 
-FeeTable 在 SSH 别名 ali 对应的服务器上使用独立目录、运行用户、数据库和发布身份。开始操作前读 server-operations 与远端 /opt/AGENTS.md，核对共享应用清单。访问方式为 HTTPS /feetable/，已接入统一设备认证，授权设备可读写和导出。公网地址不写入仓库。
+On the server selected by SSH alias `ali`, FeeTable uses an independent directory, runtime user, database, and deployment identity. Before operating it, read server-operations and the remote `/opt/AGENTS.md`, then check the shared application inventory. Access is HTTPS under `/feetable/`, with shared device authentication enabled; authorized devices can read, write, and export. Do not record the public address in this repository.
 
-请求大小：Nginx 上限 2 MiB，业务 JSON 上限 64 KiB。共享认证的默认 1 MiB 问题不影响正常业务输入；认证配置维护与大请求检查见[统一认证误拦大请求](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#统一认证误拦大请求)。
+Request sizes: Nginx permits up to 2 MiB, and business JSON up to 64 KiB. The shared authentication layer's former default 1 MiB problem did not affect normal business input. See [shared authentication incorrectly blocks large requests](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#shared-authentication-incorrectly-blocks-large-requests) for authentication-configuration maintenance and large-request checks.
 
-## 运行配置
+## Runtime Configuration
 
-| 项目 | 配置 |
+| Item | Configuration |
 | --- | --- |
-| 程序 | /opt/feetable/bin/feetable，内嵌网页和中文字体 |
-| 环境文件 | /opt/feetable/config/feetable.env |
-| 监听 | FEETABLE_ADDR=127.0.0.1:18081 |
-| 数据库 | FEETABLE_DB=/opt/feetable/data/feetable.sqlite |
-| 备份目录 | /opt/feetable/backups |
-| 用户 | feetable 运行；feetable-deploy 仅发布 |
-| 常驻 | feetable.service，开机自启 |
-| 每日备份 | feetable-backup.timer，03:15 Asia/Shanghai，随机延迟最多 5 分钟 |
-| Nginx | /etc/nginx/app-locations/feetable.conf 链接到项目 config/nginx-location.conf |
-| 项目文档 | /opt/feetable/AGENTS.md、/opt/feetable/docs，来源见 docs/SOURCE |
+| Program | `/opt/feetable/bin/feetable`, with embedded web pages and Chinese font |
+| Environment file | `/opt/feetable/config/feetable.env` |
+| Listener | `FEETABLE_ADDR=127.0.0.1:18081` |
+| Database | `FEETABLE_DB=/opt/feetable/data/feetable.sqlite` |
+| Backup directory | `/opt/feetable/backups` |
+| Users | `feetable` for runtime; `feetable-deploy` only for deployment |
+| Persistent service | `feetable.service`, enabled at boot |
+| Daily backup | `feetable-backup.timer`, 03:15 Asia/Shanghai, randomized delay of at most 5 minutes |
+| Nginx | `/etc/nginx/app-locations/feetable.conf` links to the project's `config/nginx-location.conf` |
+| Project documentation | `/opt/feetable/AGENTS.md` and `/opt/feetable/docs`; source recorded in `docs/SOURCE` |
 
-程序、脚本、配置归 root；data/backups 归 feetable，目录 0700、数据库 0600。服务仅获 data 写权限，备份 unit 单独获 data/backups 写权限。不要把程序或配置交给运行用户修改。内部 18081 不对外开放。
+Programs, scripts, and configuration are owned by root. `data`/`backups` are owned by `feetable`; directories use 0700 and the database uses 0600. The service has write permission only to `data`; the backup unit separately receives write permission to `data`/`backups`. Do not let the runtime user modify programs or configuration. Internal port 18081 is not exposed publicly.
 
-## 从源码首次安装
+## Initial Installation from Source
 
-本地 需要 go.mod 指定的 Go 工具链、Node 24+、npm。服务器运行单个 Linux amd64 程序，无需安装 Go、Node、Docker 或数据库服务。
+The local machine requires the Go toolchain specified by `go.mod`, Node 24+, and npm. The server runs one Linux amd64 program and does not need Go, Node, Docker, or a database service installed.
 
     make linux BASE_PATH=/feetable/
     sha256sum bin/feetable-linux-amd64
 
-macOS 可用 shasum -a 256。仅将校验过的 Linux 产物和已审阅提交中的 deploy 文件导出到独立临时目录，再传到服务器；不传本地 var、凭据或测试库。
+On macOS, use `shasum -a 256`. Export only the verified Linux artifact and deploy files from the reviewed commit into a separate temporary directory, then transfer that directory to the server. Do not transfer local `var`, credentials, or test databases.
 
-先核对 18081、/feetable/、/opt/feetable 和账户没有冲突。从已上传目录运行：
+First verify that port 18081, `/feetable/`, `/opt/feetable`, and the accounts do not conflict. From the uploaded directory, run:
 
     chmod 0755 feetable-linux-amd64
     ./feetable-linux-amd64 init --db initial.sqlite
@@ -42,11 +42,11 @@ macOS 可用 shasum -a 256。仅将校验过的 Linux 产物和已审阅提交�
     nginx -t
     systemctl reload nginx
 
-这次系统从空库开始。init 只创建不存在的目标；serve 永不自动创建数据库。install.sh 拒绝覆盖已有安装，restore 生成独立一致性副本。共享 Nginx server 由 server-operations 管理，不用本项目替换。若 nginx -t 失败，只撤回本次新增的 location 链接并调查，不重载无效配置。
+This installation starts from an empty database. `init` creates only a nonexistent target; `serve` never creates a database automatically. `install.sh` refuses to overwrite an existing installation, and `restore` creates an independent consistent copy. server-operations manages the shared Nginx server; do not replace it from this project. If `nginx -t` fails, remove only the new location link from this installation and investigate; do not reload invalid configuration.
 
-首次安装后，按 DEPLOYMENT 配置独立发布密钥并完成一次 本机发布。current-commit 由发布脚本在健康检查成功后写入；不要把文档提交误写成运行版本。
+After initial installation, configure the independent deployment key under DEPLOYMENT and complete one local deployment. The deployment script writes `current-commit` only after health checks succeed; do not record a documentation commit as the running version.
 
-## 验收和排障
+## Acceptance and Troubleshooting
 
     systemctl is-active feetable nginx ledger
     systemctl is-enabled feetable feetable-backup.timer
@@ -58,66 +58,66 @@ macOS 可用 shasum -a 256。仅将校验过的 Linux 产物和已审阅提交�
     systemctl list-timers feetable-backup.timer
     journalctl -u feetable-backup -n 30 --no-pager
 
-页面验收同时检查裸路径 308、资源 /feetable/assets/、深链接（含 /feetable/locations）、API 和跨站写入拒绝。生产只读验收；增删改、断网、分页、导出使用隔离合成库。手机检查 375×667，电脑检查桌面宽度。地点管理、四种排序和跨页同月合并也在合成库验证；合并测试覆盖版本冲突、不同年月、记录上限及事务中途失败回滚。弹窗验收包含内部滚动、上下边缘/遮罩滑动和关闭后的背景位置恢复。
+Page acceptance also checks the bare-path 308 redirect, assets under `/feetable/assets/`, deep links including `/feetable/locations`, APIs, and rejection of cross-site writes. Production acceptance is read-only; use an isolated synthetic database for create/update/delete, network-loss, pagination, and export checks. Check a phone at 375×667 and a computer at desktop width. Also validate location management, all four sorting modes, and cross-page same-month merging against the synthetic database. Merge checks cover version conflicts, different months, the record limit, and rollback after a mid-transaction failure. Dialog acceptance covers internal scrolling, swipes at the top/bottom edges and on the backdrop, and restoration of background position after closing.
 
-启动失败先看日志、数据库是否存在、所有者、完整性和端口。不要删除库或执行 init 掩盖故障。HTTP 409 是并发版本冲突；保存超时或 5xx 后先核对，不能盲目重试。导出 429 表示另一份文件正在生成；PNG 超出像素上限时改用 PDF/XLSX 或按标签拆分。
+For startup failure, first inspect logs, database existence, ownership, integrity, and the port. Do not delete the database or run `init` to conceal the failure. HTTP 409 is a concurrent version conflict. After a save timeout or 5xx, verify the outcome before retrying. Export status 429 means another file is being generated. When a PNG exceeds the pixel limit, use PDF/XLSX or split it by tag.
 
-## 一致性备份
+## Consistent Backups
 
-backup 使用 VACUUM INTO，包含已提交的 WAL 数据并校验生成文件。禁止只复制活动数据库主文件。每日备份成功后保留最新 14 份 daily；发布前备份按共享发布保留策略轮换，手工备份不自动清理。
+`backup` uses `VACUUM INTO`, includes committed WAL data, and verifies the generated file. Never copy only the main file of an active database. After a successful daily backup, retain the latest 14 `daily` snapshots. Pre-deployment backups rotate under the shared deployment-retention policy; manual backups are not cleaned automatically.
 
     systemctl start feetable-backup.service
     systemctl show feetable-backup.service -p Result -p ExecMainStatus
-    runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/backups/<备份文件>.sqlite
+    runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/backups/<backup-file>.sqlite
 
-数据库与备份不可进入 Git。自动备份保存在同服务器同盘；2026-09-27 已另取全应用数据归档下载到维护电脑并校验，见 [共享备份说明](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#手工数据归档)。本应用脚本不主动异机同步；服务器另有阿里云文件备份，范围、30 天保留与恢复限制见[主机云备份](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#云备份)。发布历史和发布前备份须定期关注磁盘。
+Databases and backups must not enter Git. Automatic backups reside on the same server and disk. On 2026-09-27, a separate all-application data archive was downloaded to the maintenance computer and verified; see the [shared backup description](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#manual-data-archives). This application's scripts do not proactively synchronize off-host. The server separately uses Alibaba Cloud file backup; see [host cloud backup](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#cloud-backup) for its scope, 30-day retention, and recovery limits. Monitor disk use from deployment history and pre-deployment backups regularly.
 
-## 恢复与演练
+## Recovery and Drills
 
-restore 只写一个不存在的新文件，不直接覆盖生产。演练在独立目录执行：
+`restore` writes only a new, nonexistent file and never overwrites production directly. Run drills in an independent directory:
 
-    runuser -u feetable -- /opt/feetable/bin/feetable restore --from /opt/feetable/backups/<备份文件>.sqlite --db /opt/feetable/data/<独立演练文件>.sqlite
-    runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/data/<独立演练文件>.sqlite
+    runuser -u feetable -- /opt/feetable/bin/feetable restore --from /opt/feetable/backups/<backup-file>.sqlite --db /opt/feetable/data/<independent-drill-file>.sqlite
+    runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/data/<independent-drill-file>.sqlite
 
-真实恢复需先取得用户对恢复时点及其后数据损失的确认。管理员应暂停发布和备份调度、停止服务，用当前程序备份现状，检查来源并恢复到新文件；保留当前主文件及其 WAL/SHM 作为一组，再原子替换为验证后的新库，设置 feetable 所有者和 0600，重新启动、恢复调度并只读验收。不要把旧 WAL/SHM 留在新库旁边，不在服务运行时覆盖文件。恢复失败保留现场，停止继续写入并调查。
+Real recovery requires user confirmation of the recovery point and subsequent data loss. An administrator should pause deployment and backup scheduling, stop the service, back up the current state with the current program, verify the source, and restore into a new file. Preserve the current main file and its WAL/SHM as one set, then atomically replace it with the verified new database, set owner `feetable` and mode 0600, restart, restore scheduling, and perform read-only acceptance. Do not leave an old WAL/SHM beside the new database, and do not overwrite files while the service is running. On recovery failure, preserve the scene, stop further writes, and investigate.
 
-## 发布、配置和文档同步
+## Release, Configuration, and Documentation Synchronization
 
-当前数据库版本为 2，单价以分保存，支持两位小数。已有 v1 库须由管理员完成一次停服升级，普通发布和 serve 不会隐式升级：
+The current database version is 2. Unit prices are stored in cents and support two decimal places. An administrator must perform a one-time stopped-service upgrade for an existing v1 database; ordinary deployment and `serve` do not upgrade implicitly:
 
-1. 从已验证提交构建候选程序，核对哈希。用现有程序备份，并先在恢复出的独立副本上运行候选程序的 migrate、check 和 serve，验证可启动。
-2. 持有 /run/lock/feetable-deploy.lock，暂停备份 timer，确认备份 service 已结束，再停止 feetable。用现有程序生成最终升级前备份并校验。
-3. 以 feetable 用户运行候选程序的 migrate --db /opt/feetable/data/feetable.sqlite，再运行 check。升级在单一事务中完成；失败回滚事务，不会留下部分新表。原始分值直接保留，不乘除已有单价。
-4. 安装候选程序后启动服务，检查本机和代理健康，更新 current-commit，恢复备份 timer，再进行普通 本机发布。
+1. Build the candidate program from a verified commit and check its hash. Back up with the existing program, then run the candidate's `migrate`, `check`, and `serve` against an independent restored copy and verify that it starts.
+2. Hold `/run/lock/feetable-deploy.lock`, pause the backup timer, confirm that the backup service has ended, and then stop `feetable`. Use the existing program to create and verify the final pre-upgrade backup.
+3. As user `feetable`, run the candidate program's `migrate --db /opt/feetable/data/feetable.sqlite`, then run `check`. The upgrade completes in one transaction; failure rolls back the transaction and leaves no partial new table. Existing unit-price cent values are preserved directly, without multiplication or division.
+4. Install the candidate program and start the service, check local and proxied health, update `current-commit`, restore the backup timer, and then perform an ordinary local deployment.
 
-v1 的程序不支持 v2 数据库，也会截断小数单价，不能在升级后直接回退到 v1 程序。升级后应以 v2 兼容程序修复；若确实需要回退数据，必须先按恢复流程确认时点及数据损失。保留升级前备份，不自动覆盖已经接受新写入的数据库。新程序的 check/backup/restore 可读取 v1 备份；恢复后需显式 migrate 到 v2 才能 serve。
+A v1 program does not support a v2 database and truncates fractional unit prices, so it cannot be rolled back directly after the upgrade. Repair with a v2-compatible program. If data truly must be rolled back, first use the recovery procedure to confirm the recovery point and data loss. Retain the pre-upgrade backup and do not automatically overwrite a database that has accepted new writes. The new program's `check`/`backup`/`restore` can read v1 backups; a restored v1 database must be explicitly migrated to v2 before `serve`.
 
-日常程序发布与自动回退见 [DEPLOYMENT.md](DEPLOYMENT.md)。它只替换二进制；配置、unit、发布脚本由管理员从已推送提交安装，文档用下面的同步脚本。配置更新先对比现场与源码，安装后检验语法及权限，按需 daemon-reload 或 nginx -t 后重载。影响共享入口时同时核对 Ledger。
+See [DEPLOYMENT.md](DEPLOYMENT.md) for routine program deployment and automatic rollback. It replaces only the binary. An administrator installs configuration, units, and deployment scripts from a pushed commit; documentation uses the synchronization command below. Compare live and source configuration before updates. After installation, verify syntax and permissions, then run `daemon-reload` or `nginx -t` and reload as needed. When changing the shared entry point, check Ledger as well.
 
-文档提交推送后运行 `~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`，它负责漂移检查、安装到 /opt/feetable、逐文件校验、docs/SOURCE 和清理（用法见 server-operations 的 maintenance）。共享清单与入口属于 agent-config，改动后不带参数运行同一脚本。
+After committing and pushing documentation, run `~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`. It handles drift checks, installation under `/opt/feetable`, per-file verification, `docs/SOURCE`, and cleanup; see server-operations maintenance for usage. The shared inventory and entry point belong to agent-config; after changing them, run the same script without arguments.
 
-## ServerPortal 接入材料
+## ServerPortal Integration Materials
 
-`deploy/portal.json` 是本应用资源说明的维护源。本机发布使用 server-operations 校验器检查，再将同一声明与二进制保存到同一本地版本目录；发布前执行 `portal-check`，发布后执行 `portal`，通过现有受限 SSH 安装到 `/opt/feetable/config/portal.json` 并核对采集器实际加载的 SHA-256。`config/portal-source.json` 记录声明来源提交；它与程序的 current-commit 各自表示不同材料的版本。
+`deploy/portal.json` is the maintained source for this application's resource description. Local deployment validates it with the server-operations validator, then stores the same declaration and binary in the same local version directory. It runs `portal-check` before deployment and `portal` afterward, using the existing restricted SSH identity to install `/opt/feetable/config/portal.json` and verify the SHA-256 actually loaded by the collector. `config/portal-source.json` records the declaration's source commit; it and the program's `current-commit` identify versions of different materials.
 
-门户从 `/opt/serverportal/registry.d/feetable.json` 的受控链接发现本应用，声明成功更新后自动加载，无需重启。首次正常 本机发布也会建立链接，无需再编辑门户中央应用列表。普通发布可更新本应用的声明，其他 unit/env/Nginx/发布脚本仍由管理员安装。
+The portal discovers this application through the controlled link `/opt/serverportal/registry.d/feetable.json`. It automatically reloads a successfully updated declaration without a restart. The first normal local deployment also creates the link, so there is no separate central application list to edit. An ordinary deployment may update this application's declaration; an administrator still installs other units, env files, Nginx configuration, and deployment scripts.
 
-源码或数据库行为变更不能使用该选项代替程序发布。
+Source-code or database-behavior changes cannot use this option as a substitute for program deployment.
 
-数据根、媒体、备份格式、unit、端口或访问路径变化时，同一提交维护声明及对应文档，更新共享清单并核对资源覆盖。文件、媒体、数据库表和 systemd 状态由门户自动读取；目录用途、API 说明和权限边界须由维护 agent 明确更新。共同协议、失败处置与新应用接入见 [门户维护](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/portal.md)。
+When data roots, media, backup formats, units, ports, or access paths change, update the declaration and corresponding documentation in the same commit, update the shared inventory, and check resource coverage. The portal reads files, media, database tables, and systemd state automatically; a maintenance agent must explicitly update directory purposes, API descriptions, and permission boundaries. See [portal maintenance](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/portal.md) for shared protocols, failure handling, and new-application onboarding.
 
-门户 /portal/ 已统一保护公网访问，发布脚本通过回环检查应用健康，本机发布公网检查预期未授权返回 401。设备授权永久有效至主动撤销，Cookie 经共享 Nginx 随有效请求续期；本应用若新增 add_header，必须保留共享 Set-Cookie 转发，规则及验收见共享门户维护文档。门户备份使用本应用原生一致性快照；真实完整链恢复验收按用户要求暂缓，不因本次维护自动继续下载或恢复。
+The portal at `/portal/` protects public access. Deployment scripts check application health through loopback, and local deployment's public check expects 401 for unauthorized access. Device authorization remains valid until explicitly revoked; shared Nginx renews the Cookie on valid requests. If this application adds an `add_header`, it must preserve shared `Set-Cookie` forwarding; see shared portal maintenance for rules and acceptance. Portal backups use this application's native consistent snapshot. At the user's request, real full-chain recovery acceptance remains deferred and must not automatically resume downloads or restoration during this maintenance.
 
-## 手机桌面图标
+## Phone Home-Screen Icon
 
-现有 180×180 图标由 web/src/assets/apple-touch-icon.png 构建为带哈希的 /feetable/assets/apple-touch-icon-<hash>.png。Nginx 规则按三个品牌图标名称匹配哈希，不固定单次构建文件名，也不开放整个 assets。页面、API 和用户媒体继续使用设备认证。共同原因、部署状态与手机验收见[共享排障记录](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#统一认证后-iphone-桌面图标缺失)。
+The current 180×180 icon is built from `web/src/assets/apple-touch-icon.png` into content-hashed `/feetable/assets/apple-touch-icon-<hash>.png`. Nginx rules match hashes for the three brand-icon names rather than pinning a one-build filename, and do not expose the whole assets directory. Pages, APIs, and user media remain protected by device authentication. See the [shared troubleshooting record](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#missing-iphone-home-screen-icons-after-shared-authentication) for the common cause, deployment status, and phone acceptance.
 
-## 当前发布入口
+## Current Release Entry Point
 
-本项目为个人使用：在本地验证本次改动即可发布，不设全量回归门槛，不默认新增或保留永久测试。界面改动检查实际使用的电脑/手机场景；数据迁移、批量写入/删除和备份恢复先用隔离副本针对性验证。
+This project is for personal use: validate the current change locally before release; there is no full-regression gate, and permanent tests are neither added nor retained by default. For UI changes, check the computer and phone scenarios that are actually used. Validate data migrations, bulk writes/deletions, and backup restoration specifically against an isolated copy first.
 
-完整流程见 [本机发布与回退](DEPLOYMENT.md)。GitHub 只保存源码；本机 `make release` 构建，`make deploy` 更新生产，文档单独同步。
+See [Local Deployment and Rollback](DEPLOYMENT.md) for the complete procedure. GitHub stores only source code. Local `make release` builds, `make deploy` updates production, and documentation is synchronized separately.
 
-## 发布材料自动清理
+## Automatic Cleanup of Deployment Materials
 
-服务器每天北京时间 05:00 按[发布材料自动保留](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md)保留最近 3 次成功发布、最近 5 份完整发布前备份，并保护当前版本、对应备份和待核对失败批次。共享实现、锁、回执、预览及停用命令由 server-operations 维护；本项目 deploy 保留发布脚本的 recovery 标记和每日备份的 flock 入口。首次安装先按共享文档建立 /run/lock/ali-release-retention.lock，再启用 backup timer。daily、manual、业务数据、门户 exports 和维护电脑构建材料不在此自动清理范围。
+Every day at 05:00 Beijing time, the server follows [automatic retention of deployment materials](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md) to retain the latest 3 successful deployments and latest 5 complete pre-deployment backups, while protecting the current version, its corresponding backup, and failed batches pending review. server-operations owns the shared implementation, lock, receipts, preview, and disable command. This project's `deploy` retains the deployment script's `recovery` marker and the daily backup's `flock` entry point. On first installation, create `/run/lock/ali-release-retention.lock` under the shared documentation before enabling the backup timer. `daily`, `manual`, business data, portal `exports`, and build materials on the maintenance computer are outside this automatic cleanup scope.

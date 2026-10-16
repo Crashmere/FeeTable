@@ -1,57 +1,57 @@
-# 架构与代码导读
+# Architecture and Code Guide
 
 ```text
-浏览器 → Nginx /feetable/ → Go HTTP → SQLite
-                              ├─ 内嵌 Vue 页面
+Browser → Nginx /feetable/ → Go HTTP → SQLite
+                              ├─ Embedded Vue page
                               └─ PNG / PDF / XLSX
 ```
 
-Go 入口在 cmd/feetable；internal/httpapi 解码请求、检查来源并输出 JSON/文件；internal/feetable 承担领域规则和 SQL；internal/export 处理导出。web 使用 Vue 3、Vue Router、TypeScript 和 Vite。
+The Go entry point is in `cmd/feetable`; `internal/httpapi` decodes requests, checks origins, and emits JSON/files; `internal/feetable` implements domain rules and SQL; and `internal/export` handles exports. `web` uses Vue 3, Vue Router, TypeScript, and Vite.
 
-## 保存与数据
+## Persistence and Data
 
-四张业务表为 fee_tables、fee_records、locations、tags。每张月表有 revision，新增/修改/删除明细或更改年月都会增加版本。客户端提交读取时的版本，冲突返回 409；所有多步写入使用事务。SQLite 启用 WAL、外键、FULL 同步及单连接。
+The four business tables are `fee_tables`, `fee_records`, `locations`, and `tags`. Each monthly table has a `revision`; adding, changing, or deleting a record, or changing the year/month, increments that version. The client submits the version it read, and a conflict returns 409. Every multi-step write uses a transaction. SQLite enables WAL, foreign keys, FULL synchronous mode, and a single connection.
 
-地点与标签保存在记录中的文本是当次快照；建议库是全局唯一名称列表，按累计新增使用次数排序。新增记录会补词条并加计数，编辑补词条但不加计数，删除不减少累计次数。名称 trim，空标签转 null，拒绝控制字符。
+Location and tag text stored in a record is a snapshot taken at that time. Suggestion libraries are globally unique name lists sorted by cumulative count of use in new records. Adding a record inserts missing terms and increments counts; editing inserts missing terms but does not increment counts; deleting does not reduce cumulative counts. Names are trimmed, empty tags become null, and control characters are rejected.
 
-地点管理的改名、删除仅操作 locations，保留记录快照及表 revision。改名保留累计使用次数并拒绝重名；以客户端读取的 previousName/name 检查并发改名，冲突返回 409。没有新增数据库列或 schema 迁移。
+Location-management rename and delete operations affect only `locations`, preserving record snapshots and table `revision`. Renaming preserves cumulative usage count and rejects duplicate names. The `previousName`/`name` read by the client detects concurrent renames, which return 409. There is no new database column or schema migration.
 
-quantity_milli、unit_price_cents、amount_cents 均为整数。输入十进制字符串直接解析；乘法使用大整数中间值，按量金额由后端计算，不采用客户端传入的金额。合计是逐条已保存金额相加，响应返回固定小数位字符串。浏览器只做 BigInt 预览和格式显示。
+`quantity_milli`, `unit_price_cents`, and `amount_cents` are integers. Decimal input strings are parsed directly. Multiplication uses a large-integer intermediate value, and quantity-based amounts are calculated by the backend rather than using the client-supplied amount. Totals sum each saved amount, and responses use fixed-decimal strings. The browser uses BigInt only for previews and formatting.
 
-月表列表支持 updated_desc（默认）、updated_asc、month_desc、month_asc；修改时间排序以 ID 同向打破平局，年月排序以 updated_at、ID 倒序打破平局。排序在服务器分页前完成，可按年月筛选合并候选。明细按 day、id 升序。月表每页 30 条，明细每页 50 条，合计与计数覆盖完整筛选集。读取头部、明细与汇总使用一致的读事务。
+The monthly-table list supports `updated_desc` (default), `updated_asc`, `month_desc`, and `month_asc`. Modification-time sorting breaks ties by ID in the same direction; year/month sorting breaks ties by `updated_at` and ID in descending order. Sorting occurs on the server before pagination, and year/month filters can narrow merge candidates. Records are sorted by `day`, then `id`, ascending. Monthly tables use 30 rows per page and records use 50; totals and counts cover the complete filtered set. Headers, records, and summaries are read in one consistent read transaction.
 
-合并请求指定保留表及 1–99 张来源表，包含每张表的 revision。在单个事务中验证存在、版本、年月相同、ID 不重复及合并后记录不超过 5,000 条，再更新来源记录 table_id、删除已空的来源表并增加保留表 revision/updated_at。记录 ID、日期、文本、标签、定点值及建议库计数不变，不去重或重新计算金额。任意失败回滚全部写入；旧预览和旧表单会被 revision 检查拦截。
+A merge request identifies the retained table and 1–99 source tables and includes each table's `revision`. A single transaction verifies existence, versions, identical year/month, unique IDs, and no more than 5,000 combined records; it then changes each source record's `table_id`, deletes the now-empty source tables, and increments the retained table's `revision`/`updated_at`. Record IDs, dates, text, tags, fixed-point values, and suggestion-library counts remain unchanged; records are neither deduplicated nor have amounts recalculated. Any failure rolls back all writes. Revision checks reject stale previews and forms.
 
-数据库 application_id 为 1179931714，user_version 为 2；正常启动只打开现有库并验证身份、完整性和当前版本。init 要求目标不存在。migrate 在停止服务并备份后显式运行，在一个事务中将 v1 的明细表约束升级为支持分单位价，保留数据、ID、修订版本、自增序列与索引。check/backup/restore 支持 v1 与 v2，serve 要求 v2；具体步骤和回退边界见 OPERATIONS。
+The database `application_id` is 1179931714 and `user_version` is 2. Normal startup only opens an existing database and verifies identity, integrity, and the current version. `init` requires a nonexistent target. After stopping the service and taking a backup, `migrate` must be run explicitly; in one transaction it upgrades the v1 record-table constraint to support fractional-unit prices while preserving data, IDs, revisions, autoincrement sequences, and indexes. `check`/`backup`/`restore` support v1 and v2; `serve` requires v2. See OPERATIONS for exact steps and rollback boundaries.
 
-## 界面与保存反馈
+## UI and Save Feedback
 
-全站页头使用 `sticky; top: 0` 和不透明背景，正文滚动时品牌与菜单留在顶部；根滚动区预留 104px 顶部定位空间，避免聚焦控件或锚点被页头遮住。手机视口采用浏览器默认安全区布局，不启用 `viewport-fit=cover`；原因和真机验证边界见 [顶部安全区说明](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#iphone-主屏幕页面顶部发虚)。
+The site-wide header uses `sticky; top: 0` with an opaque background, keeping the brand and menu at the top while the body scrolls. The root scrolling area reserves 104 px of top positioning space so focused controls and anchors do not end up under the header. Mobile viewports use the browser's default safe-area layout and do not enable `viewport-fit=cover`; see the [top safe-area explanation](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#top-of-an-iphone-home-screen-page-appears-blurry) for the reason and real-device verification boundary.
 
-网站图标将运输货车与明细账单组合，沿用深绿、浅绿和米白配色。源图为 `web/src/assets/icon.svg`，页头与 SVG favicon 共用；`icon-32.png` 是同图的 32×32 浏览器兼容版本，`apple-touch-icon.png` 是铺满深绿底色的 180×180 主屏幕版本。修改源图时同步重新栅格化两份 PNG。图标通过 Vite 作为独立资源输出，文件名含内容哈希，链接随 BASE_PATH 构建，避免更新后命中旧图标缓存。页头图片的空 alt 避免与相邻站名重复朗读。
+The website icon combines a transport truck with an itemized bill and retains the dark green, light green, and cream palette. Its source is `web/src/assets/icon.svg`, shared by the header and SVG favicon. `icon-32.png` is a 32×32 browser-compatibility version of the same image, and `apple-touch-icon.png` is the 180×180 home-screen version filling a dark-green background. When changing the source image, rerasterize both PNGs. Vite emits the icons as independent assets with content hashes, and links are built with `BASE_PATH` to avoid stale icon-cache hits after updates. The header image has an empty `alt` so the adjacent site name is not read twice.
 
-Home 是月表列表，提供排序和同月合并；地点管理入口位于全站页头右上角三横线菜单，LocationsPage 管理常用地点。菜单支持点击外部、Escape 和页面跳转关闭。TablePage 管理明细与筛选，ExportPage 展示完整报表。手机用记录卡片和竖向表单，电脑用表格；不把宽导出表直接用作编辑界面。合并先选择来源表，再展示条数、金额和来源表移除确认。
+Home is the monthly-table list and provides sorting and same-month merging. The location-management entry point is in the three-line menu at the upper right of the site-wide header, and `LocationsPage` manages common locations. The menu closes on outside click, Escape, or page navigation. `TablePage` manages records and filtering; `ExportPage` displays the full report. Phones use record cards and vertical forms, while computers use a table; the wide export table is not reused as the editing interface. Merging first selects source tables, then confirms the record count, amount, and removal of source tables.
 
-排序控件与“全部表格 / 张数”位于同一行：时钟表示修改时间，日历表示表格年月，每组附上下箭头。点击另一组默认最新在前，点击当前组切换升降序；当前组和方向高亮。按钮以 title 和 aria-label 提供含义及切换方向，aria-pressed 标识当前模式。
+The sorting controls share a row with the exact UI label “全部表格 / 张数”. A clock represents modification time, a calendar represents table year/month, and each group includes up/down arrows. Selecting the other group defaults to newest first; selecting the active group toggles ascending/descending order. The active group and direction are highlighted. Buttons use `title` and `aria-label` to describe their meaning and next direction, while `aria-pressed` identifies the current mode.
 
-全站 `web/src/keyboard.ts` 在捕获阶段拦截普通 Tab / Shift+Tab，焦点不在页面、表单、地点/标签建议和弹窗控件之间移动；Ctrl/Command/Alt 组合与输入法组合输入保留。控件取消浏览器焦点轮廓，鼠标点击、文字输入、Escape 关闭和排序选中状态正常工作，遵循[共享网页键盘与焦点约定](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/conventions.md#网页键盘与焦点)。
+The site-wide `web/src/keyboard.ts` intercepts ordinary Tab / Shift+Tab during capture, so focus does not move among page, form, location/tag-suggestion, and dialog controls. Ctrl/Command/Alt combinations and IME composition remain available. Controls remove browser focus outlines, while mouse clicks, text input, Escape-to-close, and selected sorting states continue to work, following the [shared web keyboard and focus conventions](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/conventions.md#web-keyboard-and-focus).
 
-所有 Modal 通过 Teleport 放在 body 下，打开前固定背景 body 并保存滚动位置，弹窗以 overscroll-behavior 阻止边缘滚动传递。卸载后恢复原样式与位置；锁支持重入，避免重叠生命周期提前释放。月表列表和明细刷新期间保留现有内容，避免关闭弹窗时页面短暂变矮而丢失滚动位置。
+Every Modal uses Teleport to render under `body`. Before opening, it fixes the background body and records the scroll position; the dialog uses `overscroll-behavior` to stop edge scrolling from propagating. Unmounting restores the original styles and position. The lock is reentrant so overlapping lifecycles do not release it early. The monthly-table list and record list retain their current content while refreshing, preventing a dialog close from briefly shortening the page and losing its scroll position.
 
-界面文案只保留业务信息、字段、操作和必要状态反馈；不添加宣传语、装饰性副标题、页脚口号或重复说明。年月并入日期字段，单价留空的含义在输入框提示，校验错误与删除确认仍明确显示。
+UI copy contains only business information, fields, actions, and necessary status feedback; do not add marketing copy, decorative subtitles, footer slogans, or repeated explanations. Year and month are incorporated into the date field, the input placeholder explains an empty unit price, and validation errors and delete confirmations remain explicit.
 
-保存期间阻止重复提交、模态框关闭和站内离开；服务器成功后才清空表单。失败保留输入，网络中断或 5xx 视为结果不明，禁用当前表单重试并要求先核对。读请求提供重试。没有离线写入队列和业务数据缓存。
+While saving, duplicate submission, dialog closing, and in-site navigation are blocked; the form is cleared only after server success. Failures preserve input. A network interruption or 5xx makes the outcome unknown, disables retries from the current form, and requires verification first. Read requests offer retries. There is no offline write queue or business-data cache.
 
-## 导出
+## Exports
 
-Report 包含表格、完整筛选明细和整数计算后的合计。下载可附 revision，变化时要求刷新预览。文件渲染在 SQL 事务结束后进行；一个并发槽控制生成任务，繁忙返回 429。
+A Report contains the table, the complete filtered records, and the total calculated from integers. A download may include `revision`; if it has changed, the user must refresh the preview. File rendering occurs after the SQL transaction ends. One concurrency slot controls generation, returning 429 when busy.
 
-PNG 与 PDF 共用布局：七列、合并标题与表头、固定宽度、长文字换行；字体为内嵌 LXGW Neo XiHei。PNG 按逻辑尺寸换行，再以 3 倍尺寸直接绘制字体与网格（宽 2,832 像素）；实际像素超过 80,000,000 时改用 2 倍（宽 1,888 像素），仍超限则拒绝生成。采用 Go image.Gray，每像素 1 字节并保留文字抗锯齿，位图最多 80 MB；逻辑长表容量不变。PDF 使用 gopdf 嵌入字体与 Unicode 映射；XLSX 使用 Excelize，共用金额与数值格式。Excel 的文字字段按字符串写入。
+PNG and PDF share a layout: seven columns, merged title and header cells, fixed widths, and wrapped long text; the embedded font is LXGW Neo XiHei. PNG wraps text at logical dimensions and then draws fonts and grid directly at 3× size (2,832 pixels wide). When actual pixels would exceed 80,000,000, it uses 2× size instead (1,888 pixels wide), and rejects generation if the image still exceeds the limit. It uses Go `image.Gray`, one byte per pixel, while retaining text antialiasing; the bitmap uses at most 80 MB, and logical long-table capacity does not change. PDF uses `gopdf` with the embedded font and Unicode mappings. XLSX uses Excelize and shared amount and numeric formats. Excel text fields are written as strings.
 
-导出文件在内存生成，响应 no-store，按表 ID、年月、标签形成文件名，不持久保存到公共目录。浏览器下载后可另存；原生分享仅在支持时展示。
+Export files are generated in memory. Responses use `no-store`, and filenames incorporate table ID, year/month, and tag. Files are not persisted to a public directory. The browser can save the download elsewhere; native sharing is shown only when supported.
 
-## 构建与子路径
+## Build and Subpath
 
-BASE_PATH 同时决定 Vite 资源、路由 history base 与 API 前缀；Nginx proxy_pass 尾斜线去掉 /feetable/，Go 接收 /api、/assets 等内部路径。未知页面返回 index.html，未知静态文件返回 404。
+`BASE_PATH` determines Vite assets, the router history base, and the API prefix. The trailing slash in Nginx `proxy_pass` removes `/feetable/`, so Go receives internal paths such as `/api` and `/assets`. Unknown page paths return `index.html`; unknown static files return 404.
 
-go:embed 将生产网页和中文字体打包进二进制。正常服务器不运行 Node、Go 编译器或外部数据库。
+`go:embed` packages the production web page and Chinese font into the binary. The normal server does not run Node, a Go compiler, or an external database.

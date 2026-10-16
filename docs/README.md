@@ -1,28 +1,28 @@
-# FeeTable 文档入口
+# FeeTable Documentation Entry Point
 
-| 主题 | 文档 |
+| Topic | Document |
 | --- | --- |
-| 数据、请求、金额与导出 | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| API 与错误约定 | [API.md](API.md) |
-| 安装、运行、备份、恢复 | [OPERATIONS.md](OPERATIONS.md) |
-| 本机发布与回退 | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Data, requests, amounts, and exports | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| API and error contracts | [API.md](API.md) |
+| Installation, operation, backup, and recovery | [OPERATIONS.md](OPERATIONS.md) |
+| Local deployment and rollback | [DEPLOYMENT.md](DEPLOYMENT.md) |
 
-## 已确认的业务边界
+## Confirmed Business Boundaries
 
-服务使用独立数据库，通过统一设备认证后可查看、修改和导出。单个用户可从多个设备访问；服务器保存正式数据，网页需要联网。没有历史导入、浏览器数据库、离线同步、账号权限或回收站。
+The service uses an independent database and permits viewing, modification, and export after shared device authentication. One user can access it from multiple devices. The server stores the authoritative data, and the web page requires a network connection. There is no historical import, browser database, offline synchronization, account authorization model, or recycle bin.
 
-按年/月创建表格，同月份允许多张表；每条记录只保存日，年月属于表格。修改年月会改变整表日期，后端拒绝任何无效日期。删除表格会级联删除明细，页面需确认。
+Tables are created by year and month, and multiple tables may have the same month. Each record stores only a day; its year and month belong to the table. Changing the year/month changes dates for the whole table, and the backend rejects every invalid date. Deleting a table cascades to its records and requires page confirmation.
 
-主页支持按修改时间或表格年月升序、降序排列，默认最新修改在前。每张表的合并入口可跨页选择其他同年月表，每次共 2–100 张；确认后将记录移入当前保留表，并移除来源表。所有记录、标签和金额完整保留，不自动去重；合并后最多 5,000 条记录，不能直接拆回。
+The home page supports ascending or descending sorting by modification time or table year/month, defaulting to the most recently modified first. A merge entry point on each table can select other tables with the same year/month across pages, for 2–100 total tables per operation. After confirmation, records move into the current retained table and source tables are removed. All records, tags, and amounts are preserved in full without automatic deduplication. The merged result may contain at most 5,000 records and cannot be split back directly.
 
-页头右上角三横线菜单中的地点管理页可统一搜索、新增、改名和删除常用地点。改名和删除只作用于地点库，已有记录保留当时名称；后续保存记录仍会把使用到的名称补入地点库。主页“全部表格 / 张数”一行右侧的时钟、日历图标分别按修改时间和表格年月排序，点击当前图标切换升降序，高亮当前模式和箭头。
+The location-management page in the three-line menu at the upper right of the header supports unified searching, addition, renaming, and deletion of common locations. Renaming and deletion affect only the location library; existing records retain the name used at the time. Saving a later record adds any used name back to the library. On the home page, the exact UI label “全部表格 / 张数” shares a row with clock and calendar icons that sort by modification time and table year/month, respectively. Selecting the current icon toggles ascending/descending order, with the active mode and arrow highlighted.
 
-数量最多三位小数；单价为非负数、最多两位小数，0 与留空不同。留空表示固定费用，金额最多两位小数。数量和固定金额保留负数与零值的表达能力，按量计价对绝对值四舍五入到分后恢复符号。每条最多一个可选标签。
+Quantity supports at most three decimal places. Unit price is nonnegative with at most two decimal places, and zero differs from blank. Blank means a fixed charge, whose amount supports at most two decimal places. Quantity and fixed amount preserve negative and zero values. Quantity-priced amounts round the absolute value to cents and then restore the sign. Each record has at most one optional tag.
 
-导出七列为月、日、地点1、地点2、数量、单价、金额；标签只决定筛选范围，不额外占列。PNG/PDF 保留完整长表，XLSX 保存数值单元格与合并表头。导出取完整筛选集，不受当前浏览页限制。
+The seven export columns are month, day, location 1, location 2, quantity, unit price, and amount. Tags determine only the filter and do not add a column. PNG/PDF preserve the complete long table; XLSX stores numeric cells and merged headers. Exports use the complete filtered set and are not limited by the current browser page.
 
-每张表最多 5,000 条记录，每个名称最多 80 字符；数量的千分值、金额的分值绝对值不超过 10¹²；单价不超过 10¹⁰ 元。PNG 默认 3 倍分辨率，长表使用 2 倍，实际图片上限 8,000 万像素；服务同时只渲染一个导出文件。
+Each table supports at most 5,000 records and each name at most 80 characters. The absolute value of a quantity in thousandths or an amount in cents must not exceed 10¹²; unit price must not exceed 10¹⁰ yuan. PNG defaults to 3× resolution and uses 2× for long tables, with an actual image limit of 80 million pixels. The service renders only one export file at a time.
 
-共享服务器维护入口是 [server-operations](https://github.com/Crashmere/agent-config/tree/main/skills/server-operations)，现场副本 `/opt/server-context`。精确部署事实见 OPERATIONS；不把规划写作已部署。
+The shared server maintenance entry point is [server-operations](https://github.com/Crashmere/agent-config/tree/main/skills/server-operations), with a live copy at `/opt/server-context`. OPERATIONS contains exact deployment facts; do not write plans as if they are deployed.
 
-日常发布与验证按 [本机发布说明](DEPLOYMENT.md) 执行；GitHub 只作源码备份。
+Follow [local deployment instructions](DEPLOYMENT.md) for routine deployment and validation. GitHub is only a source-code backup.
