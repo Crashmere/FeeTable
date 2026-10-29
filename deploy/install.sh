@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Shared backup/cleanup lock must exist before enabling the backup timer.
-[[ -f /run/lock/ali-release-retention.lock ]] || {
+# Native daily backups are opt-in only for legacy hosts; NAS uses manual external backups.
+[[ ${ENABLE_APP_BACKUP_TIMER:-false} != true || -f /run/lock/ali-release-retention.lock ]] || {
   echo 'Prepare the server-operations retention tmpfiles lock before installing this application.' >&2
   exit 1
 }
+if [[ ${ENABLE_APP_BACKUP_TIMER:-false} == true && -r /etc/server-maintenance-host && $(< /etc/server-maintenance-host) == nas ]]; then
+  echo 'Scheduled internal application backups are disabled on NAS.' >&2; exit 1
+fi
 if [[ "$EUID" -ne 0 || $# -ne 2 ]]; then
   printf 'Usage: sudo bash deploy/install.sh <linux-binary> <verified-initial-database>\n' >&2
   exit 1
@@ -35,7 +38,12 @@ install -m 0644 "$feetable_deploy/feetable.service" "$feetable_deploy/feetable-b
 chown feetable:feetable /opt/feetable/data/feetable.sqlite
 systemctl link /opt/feetable/config/feetable.service /opt/feetable/config/feetable-backup.service /opt/feetable/config/feetable-backup.timer
 systemctl daemon-reload
-systemctl enable --now feetable.service feetable-backup.timer
-systemctl start feetable-backup.service
+systemctl enable --now feetable.service
+if [[ ${ENABLE_APP_BACKUP_TIMER:-false} == true ]]; then
+  systemctl enable --now feetable-backup.timer
+  systemctl start feetable-backup.service
+else
+  systemctl disable --now feetable-backup.timer
+fi
 curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:18081/healthz
 printf '\nFeeTable installed. Enable /opt/feetable/config/nginx-location.conf in the shared Nginx server after verification.\n'

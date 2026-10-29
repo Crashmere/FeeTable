@@ -21,6 +21,14 @@ commit=$1
 expected=$2
 app=/opt/feetable
 database=$app/data/feetable.sqlite
+nas=false
+upgrade=/opt/server-context/scripts/upgrade-state.py
+if [[ -r /etc/server-maintenance-host && $(< /etc/server-maintenance-host) == nas ]]; then
+  nas=true
+  test -f "$upgrade"
+  exec 8>/run/lock/server-maintenance.lock
+  flock -s -n 8 || { printf 'A full backup or maintenance operation is running.\n' >&2; exit 75; }
+fi
 exec 9>/run/lock/feetable-deploy.lock
 flock -n 9 || { printf 'Another deployment is running.\n' >&2; exit 75; }
 test -f "$database"
@@ -90,13 +98,28 @@ printf 'commit=%s\nsha256=%s\n' "$commit" "$expected" > "$release/metadata"
 backup="$app/backups/before-deploy-$(basename "$release").sqlite"
 stopped=true
 systemctl stop feetable
-runuser -u feetable -- timeout 60 "$app/bin/feetable" backup --db "$database" --out "$backup"
-runuser -u feetable -- timeout 30 "$release/feetable" check --db "$backup"
+if [[ $nas == true ]]; then
+  candidate_data=$(python3 "$upgrade" begin --app feetable --release "$(basename "$release")")
+  backup="/var/lib/server-upgrades/feetable/$(basename "$release")"
+  runuser -u feetable -- timeout 30 "$release/feetable" check --db "$candidate_data/feetable.sqlite"
+else
+  runuser -u feetable -- timeout 60 "$app/bin/feetable" backup --db "$database" --out "$backup"
+  runuser -u feetable -- timeout 30 "$release/feetable" check --db "$backup"
+fi
 install -m 0755 "$release/feetable" "$app/bin/feetable.next"
 replaced=true
 mv -f "$app/bin/feetable.next" "$app/bin/feetable"
 systemctl start feetable
 wait_healthy
+if [[ $nas == true ]]; then
+  systemctl stop feetable
+  python3 "$upgrade" verify --app feetable --release "$(basename "$release")"
+  systemctl start feetable
+  wait_healthy
+fi
 printf '%s\n' "$commit" > "$app/current-commit"
 chmod 0644 "$app/current-commit"
-printf 'Deployed %s; backup: %s\n' "$commit" "$backup"
+if [[ $nas == true ]]; then
+  python3 "$upgrade" accept --app feetable --release "$(basename "$release")"
+  printf 'Deployed %s.\n' "$commit"
+else printf 'Deployed %s; backup: %s\n' "$commit" "$backup"; fi

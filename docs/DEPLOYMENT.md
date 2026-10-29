@@ -6,6 +6,8 @@ GitHub is only a backup of source code and configuration, and Actions is disable
 
 ## Routine Use
 
+`make deploy` targets `nas` and its dedicated deployment key. `vps` provides the public HTTPS entrance on port 8443; temporary `ali` access forwards to the same NAS application. Public-check overrides and host-specific keys are maintained in the shared release guide. Explicit legacy ALI deployment must not create a second writer after migration.
+
 ```sh
 # Exercise the current feature locally, then commit and push the source.
 git add <files-changed-in-this-task>
@@ -23,7 +25,7 @@ Use `make portal` to update only portal information. It preflights and synchroni
 
 Use the restricted `feetable-deploy` identity; its private key exists only on the maintenance computer. For initial account setup, use `deploy/setup-deploy.sh <local-deployment-public-key>`; do not initialize an existing account again. The forced command accepts only `deploy`, `portal-check`, and `portal`, and sudo permits only this application's fixed deployment script.
 
-Switching begins only after upload completion and successful verification. Preserve the pre-upgrade backup and `previous`, and restore the old program if health checks fail. Normal deployments do not carry production data. An administrator explicitly synchronizes units, Nginx, env, authorization, and deployment scripts from source; documentation uses the shared `sync-docs.sh`.
+Switching begins only after upload and verification succeed. On `nas`, the shared helper cold-copies complete data/config/program state to root-private `/var/lib/server-upgrades/feetable/<release>/`, checks the candidate on an independent copy, and verifies runtime plus preserved SQLite rows and files. Successful acceptance immediately deletes only that upgrade's local copy; failure or uncertainty retains it. `previous` remains the program rollback artifact. Normal deployments do not transfer production data. Administrators install units, Nginx, env, authorization, and scripts from source; documentation uses `SYNC_HOST=nas` with the shared `sync-docs.sh`.
 
 The current database is schema 2. A schema 1 program cannot be rolled back by replacing only the binary. Database upgrades and restoration still follow OPERATIONS independently.
 
@@ -36,4 +38,4 @@ make rollback COMMIT=<explicitly-selected-full-old-commit>
 
 Rollback reuses a retained, verified local artifact and still performs backup and health checks. First confirm that the old program is compatible with current data. Program rollback does not restore the database, photos, or device state. To restore data, first choose a recovery point and preserve the current state, then follow OPERATIONS/RESTORE.
 
-The server retains program, `previous`, `metadata`, `result`, and `recovery` under `/opt/feetable/releases/`; `current-commit` records the actual running source. `.local/releases/<commit>/last-deployment.json` records the local deployment result. An upload failure normally occurs before the service is stopped; for a failure after switching, inspect `result` and the journal first. Server deployment history and ordinary pre-deployment snapshots are automatically rotated under [automatic retention of deployment materials](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md). Local builds, `manual` and migration backups, and portal export packages are excluded.
+NAS retains the program, `previous`, `metadata`, `result`, `recovery`, and upgrade-acceptance evidence under `/opt/feetable/releases/`; `current-commit` records the actual running source. `.local/releases/<commit>/last-deployment.json` records the local result. After a failed switch, inspect the result, journal, and retained private snapshot. NAS does not automatically prune routine backups or uncertain upgrade snapshots. [Legacy automatic retention](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md) applies to `ali`; local builds remain outside it.

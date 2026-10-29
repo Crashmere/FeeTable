@@ -2,7 +2,7 @@
 
 The public entry point uses HTTPS with a trusted IP certificate, preserving the existing `/feetable/` path. Public HTTP returns 308; API clients use HTTPS directly. Nginx overwrites `X-Forwarded-Proto`; write-origin validation trusts proxy headers only from loopback addresses and still rejects cross-site origins. See [shared HTTPS operations](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/https.md) (server copy: `/opt/server-context/references/https.md`) for certificates, renewal, rollback, and whole-server acceptance. This project's backend and deployment checks retain local HTTP. The proxy-inspection entry point at `127.0.0.1:80` is not publicly reachable. Public access uses ServerPortal's shared device authentication: enter the passphrase at `/portal/login` to authorize a device, then use the same-origin Secure/HttpOnly Cookie. Unauthorized APIs return 401. Local deployment checks and service-to-service calls remain available.
 
-On the server selected by SSH alias `ali`, FeeTable uses an independent directory, runtime user, database, and deployment identity. Before operating it, read server-operations and the remote `/opt/AGENTS.md`, then check the shared application inventory. Access is HTTPS under `/feetable/`, with shared device authentication enabled; authorized devices can read, write, and export. Do not record the public address in this repository.
+FeeTable's application target is `nas`, using an independent directory, runtime user, database, and deployment identity. `vps` exposes HTTPS port 8443; temporary `ali` access forwards to the same NAS instance. NAS also provides local-CA HTTPS for home devices. Read server-operations and the target's remote `/opt/AGENTS.md`; current-state records activation. Both entrances retain shared device authentication. Keep addresses outside this repository.
 
 Request sizes: Nginx permits up to 2 MiB, and business JSON up to 64 KiB. The shared authentication layer's former default 1 MiB problem did not affect normal business input. See [shared authentication incorrectly blocks large requests](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#shared-authentication-incorrectly-blocks-large-requests) for authentication-configuration maintenance and large-request checks.
 
@@ -64,13 +64,11 @@ For startup failure, first inspect logs, database existence, ownership, integrit
 
 ## Consistent Backups
 
-`backup` uses `VACUUM INTO`, includes committed WAL data, and verifies the generated file. Never copy only the main file of an active database. After a successful daily backup, retain the latest 14 `daily` snapshots. Pre-deployment backups rotate under the shared deployment-retention policy; manual backups are not cleaned automatically.
+NAS uses manual complete compressed backups on an explicitly identified external volume through Portal or the agent. Pause services for full cold data/config/program capture to external staging, resume previously running services, then compress and verify that immutable copy. No routine internal staging/archive, daily native timer, or backup rotation runs on NAS. The native `backup` command remains a consistent `VACUUM INTO` database tool for old packages and isolated checks; it includes committed WAL data but does not replace the full-state job.
 
-    systemctl start feetable-backup.service
-    systemctl show feetable-backup.service -p Result -p ExecMainStatus
     runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/backups/<backup-file>.sqlite
 
-Databases and backups must not enter Git. Automatic backups reside on the same server and disk. On 2026-09-27, a separate all-application data archive was downloaded to the maintenance computer and verified; see the [shared backup description](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#manual-data-archives). This application's scripts do not proactively synchronize off-host. The server separately uses Alibaba Cloud file backup; see [host cloud backup](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/current-state.md#cloud-backup) for its scope, 30-day retention, and recovery limits. Monitor disk use from deployment history and pre-deployment backups regularly.
+Keep real data/archives outside Git. The verified 2026-09-27 maintenance-computer archive and independent ALI Cloud Backup remain preserved in shared current-state; neither is a NAS schedule. Upgrades use the complete temporary local copy in [DEPLOYMENT.md](DEPLOYMENT.md), removed only after runtime and data preservation pass.
 
 ## Recovery and Drills
 
@@ -79,7 +77,7 @@ Databases and backups must not enter Git. Automatic backups reside on the same s
     runuser -u feetable -- /opt/feetable/bin/feetable restore --from /opt/feetable/backups/<backup-file>.sqlite --db /opt/feetable/data/<independent-drill-file>.sqlite
     runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/data/<independent-drill-file>.sqlite
 
-Real recovery requires user confirmation of the recovery point and subsequent data loss. An administrator should pause deployment and backup scheduling, stop the service, back up the current state with the current program, verify the source, and restore into a new file. Preserve the current main file and its WAL/SHM as one set, then atomically replace it with the verified new database, set owner `feetable` and mode 0600, restart, restore scheduling, and perform read-only acceptance. Do not leave an old WAL/SHM beside the new database, and do not overwrite files while the service is running. On recovery failure, preserve the scene, stop further writes, and investigate.
+Recovery remains agent-operated after confirming the recovery point and later data loss. For native packages, stop writes, preserve current full state, verify the selected source, and restore into a new file. Preserve the current main file and WAL/SHM together before atomic replacement; set owner `feetable` and mode 0600, restart, and inspect read-only. Keep NAS native scheduling disabled. Full cold archives are instead extracted and verified in an isolated directory before the agent restores the complete application subtree. Do not overwrite an active WAL database or repeatedly restore after unclear failures.
 
 ## Release, Configuration, and Documentation Synchronization
 
@@ -88,13 +86,13 @@ The current database version is 2. Unit prices are stored in cents and support t
 1. Build the candidate program from a verified commit and check its hash. Back up with the existing program, then run the candidate's `migrate`, `check`, and `serve` against an independent restored copy and verify that it starts.
 2. Hold `/run/lock/feetable-deploy.lock`, pause the backup timer, confirm that the backup service has ended, and then stop `feetable`. Use the existing program to create and verify the final pre-upgrade backup.
 3. As user `feetable`, run the candidate program's `migrate --db /opt/feetable/data/feetable.sqlite`, then run `check`. The upgrade completes in one transaction; failure rolls back the transaction and leaves no partial new table. Existing unit-price cent values are preserved directly, without multiplication or division.
-4. Install the candidate program and start the service, check local and proxied health, update `current-commit`, restore the backup timer, and then perform an ordinary local deployment.
+4. Install the candidate program, start it, verify local/proxied health and affected data, and record `current-commit`. Keep NAS native scheduling disabled; accept and remove only the validated upgrade copy before returning to normal local releases.
 
 A v1 program does not support a v2 database and truncates fractional unit prices, so it cannot be rolled back directly after the upgrade. Repair with a v2-compatible program. If data truly must be rolled back, first use the recovery procedure to confirm the recovery point and data loss. Retain the pre-upgrade backup and do not automatically overwrite a database that has accepted new writes. The new program's `check`/`backup`/`restore` can read v1 backups; a restored v1 database must be explicitly migrated to v2 before `serve`.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for routine program deployment and automatic rollback. It replaces only the binary. An administrator installs configuration, units, and deployment scripts from a pushed commit; documentation uses the synchronization command below. Compare live and source configuration before updates. After installation, verify syntax and permissions, then run `daemon-reload` or `nginx -t` and reload as needed. When changing the shared entry point, check Ledger as well.
 
-After committing and pushing documentation, run `~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`. It handles drift checks, installation under `/opt/feetable`, per-file verification, `docs/SOURCE`, and cleanup; see server-operations maintenance for usage. The shared inventory and entry point belong to agent-config; after changing them, run the same script without arguments.
+After pushing managed documentation, run `SYNC_HOST=nas ~/agent-config/skills/server-operations/scripts/sync-docs.sh FeeTable`. It checks drift and installs verified documentation with `docs/SOURCE`. Shared inventory and gateway conventions belong to agent-config and must synchronize to their respective hosts.
 
 ## ServerPortal Integration Materials
 
@@ -106,7 +104,7 @@ Source-code or database-behavior changes cannot use this option as a substitute 
 
 When data roots, media, backup formats, units, ports, or access paths change, update the declaration and corresponding documentation in the same commit, update the shared inventory, and check resource coverage. The portal reads files, media, database tables, and systemd state automatically; a maintenance agent must explicitly update directory purposes, API descriptions, and permission boundaries. See [portal maintenance](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/portal.md) for shared protocols, failure handling, and new-application onboarding.
 
-The portal at `/portal/` protects public access. Deployment scripts check application health through loopback, and local deployment's public check expects 401 for unauthorized access. Device authorization remains valid until explicitly revoked; shared Nginx renews the Cookie on valid requests. If this application adds an `add_header`, it must preserve shared `Set-Cookie` forwarding; see shared portal maintenance for rules and acceptance. Portal backups use this application's native consistent snapshot. At the user's request, real full-chain recovery acceptance remains deferred and must not automatically resume downloads or restoration during this maintenance.
+Portal protects both HTTPS entrances; loopback release checks remain private and public unauthorized APIs return 401. Device grants persist until revocation; preserve shared cookie-renewal headers. NAS Portal backups cold-copy complete state to external staging rather than using only the native database snapshot. Recovery remains agent-operated after confirming the recovery point.
 
 ## Phone Home-Screen Icon
 
@@ -118,6 +116,6 @@ This project is for personal use: validate the current change locally before rel
 
 See [Local Deployment and Rollback](DEPLOYMENT.md) for the complete procedure. GitHub stores only source code. Local `make release` builds, `make deploy` updates production, and documentation is synchronized separately.
 
-## Automatic Cleanup of Deployment Materials
+## Deployment-Material Cleanup
 
-Every day at 05:00 Beijing time, the server follows [automatic retention of deployment materials](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md) to retain the latest 3 successful deployments and latest 5 complete pre-deployment backups, while protecting the current version, its corresponding backup, and failed batches pending review. server-operations owns the shared implementation, lock, receipts, preview, and disable command. This project's `deploy` retains the deployment script's `recovery` marker and the daily backup's `flock` entry point. On first installation, create `/run/lock/ali-release-retention.lock` under the shared documentation before enabling the backup timer. `daily`, `manual`, business data, portal `exports`, and build materials on the maintenance computer are outside this automatic cleanup scope.
+NAS has no daily backup/release pruning. Successful upgrade acceptance removes only its private `/var/lib/server-upgrades/feetable/<release>/` and candidate work copy; failed or uncertain copies remain for the agent. Existing ALI and maintenance-computer backups are untouched. [Legacy retention](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md) is not enabled for NAS upgrades.

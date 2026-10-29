@@ -11,9 +11,9 @@ Read [docs/README.md](docs/README.md) first, then read the architecture, API, op
 - Keep the single-service, single-SQLite, direct-SQL implementation. Use fixed-point representations for money and quantities, and decimal strings for API numeric values.
 - The business scope is monthly tables, transport records, locations, one tag per record, and PNG/PDF/XLSX exports. Networked reads and writes are available after shared device authentication, and the server is the authoritative data source.
 - Writes, amounts, dates, filtering, and exports must remain consistent. Use a synthetic database for tests and read-only acceptance in production.
-- Before deployment or server operations, read the server-operations skill and explicitly run `ssh ali 'cat /opt/AGENTS.md'`; shared server documentation is under `/opt/server-context`.
+- Before NAS application work, read server-operations and explicitly run `ssh nas 'cat /opt/AGENTS.md'`; read the corresponding entry point on `vps` or temporary gateway `ali` before operating that host. Shared current-state records activation.
 - FeeTable maintains only its own deploy/location configuration, unit, data, and deployment identity. Shared-configuration changes require checking every application.
-- Source configuration and `docs` are the maintenance sources. Replace outdated descriptions after changes, then, after pushing, run agent-config's `skills/server-operations/scripts/sync-docs.sh FeeTable` to synchronize the server copies.
+- Source configuration and `docs` are maintenance sources. After pushing managed documentation, use `SYNC_HOST=nas` with agent-config's `skills/server-operations/scripts/sync-docs.sh FeeTable`; synchronize gateway context to its respective host.
 - Use only the authorization table in server-operations `SKILL.md` to decide what to finish and report afterward versus what to confirm first. Documentation maintenance and synchronization do not require advance confirmation.
 - Data, backups, private keys, and the server's public address must not enter Git.
 
