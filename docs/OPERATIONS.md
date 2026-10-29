@@ -14,10 +14,10 @@ Request sizes: Nginx permits up to 2 MiB, and business JSON up to 64 KiB. The sh
 | Environment file | `/opt/feetable/config/feetable.env` |
 | Listener | `FEETABLE_ADDR=127.0.0.1:18081` |
 | Database | `FEETABLE_DB=/opt/feetable/data/feetable.sqlite` |
-| Backup directory | `/opt/feetable/backups` |
+| Legacy native backup directory | `/opt/feetable/backups`; no routine NAS snapshots |
 | Users | `feetable` for runtime; `feetable-deploy` only for deployment |
 | Persistent service | `feetable.service`, enabled at boot |
-| Daily backup | `feetable-backup.timer`, 03:15 Asia/Shanghai, randomized delay of at most 5 minutes |
+| Legacy native timer | `feetable-backup.timer`; disabled on NAS |
 | Nginx | `/etc/nginx/app-locations/feetable.conf` links to the project's `config/nginx-location.conf` |
 | Project documentation | `/opt/feetable/AGENTS.md` and `/opt/feetable/docs`; source recorded in `docs/SOURCE` |
 
@@ -83,8 +83,8 @@ Recovery remains agent-operated after confirming the recovery point and later da
 
 The current database version is 2. Unit prices are stored in cents and support two decimal places. An administrator must perform a one-time stopped-service upgrade for an existing v1 database; ordinary deployment and `serve` do not upgrade implicitly:
 
-1. Build the candidate program from a verified commit and check its hash. Back up with the existing program, then run the candidate's `migrate`, `check`, and `serve` against an independent restored copy and verify that it starts.
-2. Hold `/run/lock/feetable-deploy.lock`, pause the backup timer, confirm that the backup service has ended, and then stop `feetable`. Use the existing program to create and verify the final pre-upgrade backup.
+1. Build the candidate program from a verified commit and check its hash. Rehearse the candidate's `migrate`, `check`, and `serve` against an isolated complete data copy and verify startup and preservation of unit-price cent values.
+2. Hold the shared maintenance lock and `/run/lock/feetable-deploy.lock`, confirm that any legacy backup job has ended, and stop `feetable`. Use the shared NAS helper to create and verify complete cold `data`, `config`, and `bin` protection under `/var/lib/server-upgrades/feetable/<release>/`; keep native scheduling disabled.
 3. As user `feetable`, run the candidate program's `migrate --db /opt/feetable/data/feetable.sqlite`, then run `check`. The upgrade completes in one transaction; failure rolls back the transaction and leaves no partial new table. Existing unit-price cent values are preserved directly, without multiplication or division.
 4. Install the candidate program, start it, verify local/proxied health and affected data, and record `current-commit`. Keep NAS native scheduling disabled; accept and remove only the validated upgrade copy before returning to normal local releases.
 
