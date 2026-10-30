@@ -49,14 +49,12 @@ After initial installation, configure the independent deployment key under DEPLO
 ## Acceptance and Troubleshooting
 
     systemctl is-active feetable nginx ledger
-    systemctl is-enabled feetable feetable-backup.timer
+    systemctl is-enabled feetable
     curl -fsS http://127.0.0.1:18081/healthz
     curl -fsS http://127.0.0.1/feetable/healthz
     curl -fsS http://127.0.0.1/feetable/tables/1
     curl -fsS http://127.0.0.1/ledger/healthz
     journalctl -u feetable -n 50 --no-pager
-    systemctl list-timers feetable-backup.timer
-    journalctl -u feetable-backup -n 30 --no-pager
 
 Page acceptance also checks the bare-path 308 redirect, assets under `/feetable/assets/`, deep links including `/feetable/locations`, APIs, and rejection of cross-site writes. Production acceptance is read-only; use an isolated synthetic database for create/update/delete, network-loss, pagination, and export checks. Check a phone at 375×667 and a computer at desktop width. Also validate location management, all four sorting modes, and cross-page same-month merging against the synthetic database. Merge checks cover version conflicts, different months, the record limit, and rollback after a mid-transaction failure. Dialog acceptance covers internal scrolling, swipes at the top/bottom edges and on the backdrop, and restoration of background position after closing.
 
