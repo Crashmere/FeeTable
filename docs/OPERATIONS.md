@@ -64,7 +64,7 @@ For startup failure, first inspect logs, database existence, ownership, integrit
 
 Use the agent-owned [backup and recovery runbook](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/backup-recovery.md), also at `/opt/server-context/references/backup-recovery.md` on NAS. Portal provides no backup or recovery operation.
 
-NAS uses manual complete compressed backups on an explicitly identified external volume through agent-only server-operations tooling. Pause services for full cold data/config/program capture to external staging, resume previously running services, then compress and verify that immutable copy. No routine internal staging/archive, daily native timer, or backup rotation runs on NAS. The native `backup` command remains a consistent `VACUUM INTO` database tool for old packages and isolated checks; it includes committed WAL data but does not replace the full-state job.
+Manual backup follows the [agent backup runbook](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/backup-recovery.md): complete NAS data/config/program state and VPS recovery material are staged/compressed into one package on NAS, then copied/read-back verified externally. Required writers resume before compression; only successful task staging is removed. Native daily timers and automatic rotation remain disabled. The native `backup` command remains a consistent `VACUUM INTO` database tool for legacy/isolated checks; committed WAL data is included, but this is not the full-state job.
 
     runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/backups/<backup-file>.sqlite
 
@@ -104,7 +104,7 @@ Source-code or database-behavior changes cannot use this option as a substitute 
 
 When data roots, media, backup formats, units, ports, or access paths change, update the declaration and corresponding documentation in the same commit, update the shared inventory, and check resource coverage. The portal reads files, media, database tables, and systemd state automatically; a maintenance agent must explicitly update directory purposes, API descriptions, and permission boundaries. See [portal maintenance](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/portal.md) for shared protocols, failure handling, and new-application onboarding.
 
-Portal protects the NAS, VPS, and compatibility ALI HTTPS entrances; loopback release checks remain private and public unauthorized APIs return 401. Device grants persist until revocation; preserve shared cookie-renewal headers. Agent backups cold-copy complete NAS state to external staging rather than using only the native database snapshot. Recovery remains agent-operated after confirming the recovery point.
+Portal protects the NAS, VPS, and compatibility ALI HTTPS entrances; loopback release checks remain private and public unauthorized APIs return 401. Device grants persist until revocation; preserve shared cookie-renewal headers. Agent backups include complete NAS state in the combined NAS/VPS package, not only the native database snapshot. Recovery remains agent-operated after confirming the recovery point.
 
 ## Phone Home-Screen Icon
 
