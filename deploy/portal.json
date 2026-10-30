@@ -9,12 +9,9 @@
   "port": 18081,
   "user": "feetable",
   "units": [
-    "feetable.service",
-    "feetable-backup.service",
-    "feetable-backup.timer"
+    "feetable.service"
   ],
   "database": "/opt/feetable/data/feetable.sqlite",
-  "backupKind": "sqlite",
   "resources": [
     {
       "id": "data",
@@ -22,15 +19,6 @@
       "path": "/opt/feetable/data",
       "purpose": "数据库、图片与历史迁移材料；临时文件不属于恢复数据。",
       "kind": "data",
-      "browse": true,
-      "cleanup": false
-    },
-    {
-      "id": "backups",
-      "name": "数据备份",
-      "path": "/opt/feetable/backups",
-      "purpose": "nas 的日常备份由门户或 agent 手动写入外置盘，采用全量压缩归档；本目录中的历史原生材料不自动清理。升级临时全量副本由 /var/lib/server-upgrades 管理，运行和数据验证成功后立即删除，失败或未确认时保留。",
-      "kind": "backups",
       "browse": true,
       "cleanup": false
     },
