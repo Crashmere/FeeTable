@@ -6,6 +6,8 @@ FeeTable's application target is `nas`, using an independent directory, runtime 
 
 Request sizes: Nginx permits up to 2 MiB, and business JSON up to 64 KiB. The shared authentication layer's former default 1 MiB problem did not affect normal business input. See [shared authentication incorrectly blocks large requests](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/common-issues.md#shared-authentication-incorrectly-blocks-large-requests) for authentication-configuration maintenance and large-request checks.
 
+FeeTable receives bounded JSON requests. Shared connection-level transfer tuning and cross-project checks are maintained in [Upload throughput and request limits](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/conventions.md#upload-throughput-and-request-limits), also at `/opt/server-context/references/conventions.md` on NAS.
+
 ## Runtime Configuration
 
 | Item | Configuration |
