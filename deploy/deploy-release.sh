@@ -13,12 +13,16 @@ fi
 
 
 # 此脚本由 root 安装和维护；本机可发送程序和受校验的本应用声明，不能更新本脚本。
-if [[ $EUID -ne 0 || $# -ne 2 || ! $1 =~ ^[0-9a-f]{40}$ || ! $2 =~ ^[0-9a-f]{64}$ ]]; then
+if [[ $EUID -ne 0 || $# -lt 2 || $# -gt 3 || ! $1 =~ ^[0-9a-f]{40}$ || ! $2 =~ ^[0-9a-f]{64}$ ]]; then
   printf 'Usage: deploy-release.sh <commit-sha> <binary-sha256> < binary\n' >&2
   exit 64
 fi
 commit=$1
 expected=$2
+plan_token=${3:-}
+if [[ -n $plan_token && ( ! $plan_token =~ ^[A-Za-z0-9_-]+$ || ${#plan_token} -gt 4096 ) ]]; then
+  echo 'Invalid database protection plan.' >&2; exit 64
+fi
 app=/opt/feetable
 database=$app/data/feetable.sqlite
 nas=false
@@ -29,6 +33,7 @@ if [[ -r /etc/server-maintenance-host && $(< /etc/server-maintenance-host) == na
   exec 8>/run/lock/server-maintenance.lock
   flock -s -n 8 || { printf 'A full backup or maintenance operation is running.\n' >&2; exit 75; }
 fi
+if [[ -n $plan_token && $nas != true ]]; then echo 'Database plans require the NAS release flow.' >&2; exit 64; fi
 exec 9>/run/lock/feetable-deploy.lock
 flock -n 9 || { printf 'Another deployment is running.\n' >&2; exit 75; }
 test -f "$database"
@@ -94,12 +99,12 @@ cp "$app/bin/feetable" "$release/previous"
 chmod 0755 "$release/previous"
 printf 'commit=%s\nsha256=%s\n' "$commit" "$expected" > "$release/metadata"
 
-# 旧程序备份，候选程序校验；两者都以 feetable 身份运行，绝不以 root 执行上传内容。
+# Candidate checks run as the application identity; NAS protects only selected databases.
 backup="$app/backups/before-deploy-$(basename "$release").sqlite"
 stopped=true
 systemctl stop feetable
 if [[ $nas == true ]]; then
-  candidate_data=$(python3 "$upgrade" begin --app feetable --release "$(basename "$release")")
+  candidate_data=$(python3 "$upgrade" begin --app feetable --release "$(basename "$release")" --plan-token "$plan_token")
   backup="/var/lib/server-upgrades/feetable/$(basename "$release")"
   runuser -u feetable -- timeout 30 "$release/feetable" check --db "$candidate_data/feetable.sqlite"
 else
@@ -111,7 +116,7 @@ replaced=true
 mv -f "$app/bin/feetable.next" "$app/bin/feetable"
 systemctl start feetable
 wait_healthy
-if [[ $nas == true ]]; then
+if [[ $nas == true && -d $backup ]]; then
   systemctl stop feetable
   python3 "$upgrade" verify --app feetable --release "$(basename "$release")"
   systemctl start feetable

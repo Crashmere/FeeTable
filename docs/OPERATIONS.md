@@ -70,7 +70,7 @@ Manual backup follows the [agent backup runbook](https://github.com/Crashmere/ag
 
     runuser -u feetable -- /opt/feetable/bin/feetable check --db /opt/feetable/backups/<backup-file>.sqlite
 
-Keep real data/archives outside Git. The verified 2026-09-27 maintenance-computer archive and independent ALI Cloud Backup remain preserved in shared current-state; neither is a NAS schedule. Upgrades use the complete temporary local copy in [DEPLOYMENT.md](DEPLOYMENT.md), removed only after runtime and data preservation pass.
+Keep real data/archives outside Git. The verified 2026-09-27 maintenance-computer archive and independent ALI Cloud Backup remain preserved in shared current-state; neither is a NAS schedule. Upgrades use conditional database-only protection in [DEPLOYMENT.md](DEPLOYMENT.md); ordinary releases create no copy, and selected database protection is removed after runtime and affected-data acceptance.
 
 ## Recovery and Drills
 
@@ -86,7 +86,7 @@ Recovery remains agent-operated after confirming the recovery point and later da
 The current database version is 2. Unit prices are stored in cents and support two decimal places. An administrator must perform a one-time stopped-service upgrade for an existing v1 database; ordinary deployment and `serve` do not upgrade implicitly:
 
 1. Build the candidate program from a verified commit and check its hash. Rehearse the candidate's `migrate`, `check`, and `serve` against an isolated complete data copy and verify startup and preservation of unit-price cent values.
-2. Hold the shared maintenance lock and `/run/lock/feetable-deploy.lock`, confirm that any legacy backup job has ended, and stop `feetable`. Use the shared NAS helper to create and verify complete cold business-data and recovery-critical private-configuration protection under `/var/lib/server-upgrades/feetable/<release>/`; keep native scheduling disabled. Apply the shared [data-protection scope](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md#data-protection-scope) before capture.
+2. Hold the shared maintenance lock and `/run/lock/feetable-deploy.lock`, confirm that any legacy backup job has ended, and stop `feetable`. Use the shared NAS helper with `--database feetable.sqlite --reason "Rebuild v1 prices as scaled v2 integers"` to create and verify only the affected database protection under `/var/lib/server-upgrades/feetable/<release>/`; keep native scheduling disabled. Apply the shared [data-protection scope](https://github.com/Crashmere/agent-config/blob/main/skills/server-operations/references/retention.md#data-protection-scope) before capture.
 3. As user `feetable`, run the candidate program's `migrate --db /opt/feetable/data/feetable.sqlite`, then run `check`. The upgrade completes in one transaction; failure rolls back the transaction and leaves no partial new table. Existing unit-price cent values are preserved directly, without multiplication or division.
 4. Install the candidate program, start it, verify local/proxied health and affected data, and record `current-commit`. Keep NAS native scheduling disabled; accept and remove only the validated upgrade copy before returning to normal local releases.
 
