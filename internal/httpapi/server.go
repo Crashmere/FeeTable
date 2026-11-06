@@ -313,7 +313,7 @@ func (s *server) export(w http.ResponseWriter, r *http.Request) {
 			return '_'
 		}, *report.FilterTag)
 	}
-	name := fmt.Sprintf("运费明细表_%d年%d月_%d%s.%s", report.Table.Year, report.Table.Month, report.Table.ID, suffix, format)
+	name := fmt.Sprintf("FeeTable_%d年%d月_%d%s.%s", report.Table.Year, report.Table.Month, report.Table.ID, suffix, format)
 	w.Header().Set("Content-Type", mimeType)
 	w.Header().Set("Cache-Control", "no-store")
 	disposition := "attachment"

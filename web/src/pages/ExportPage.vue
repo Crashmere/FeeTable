@@ -92,7 +92,7 @@ function change(e: Event) {
             </colgroup>
             <thead>
               <tr>
-                <th colspan="7" class="report-title">运费明细表</th>
+                <th colspan="7" class="report-title">FeeTable</th>
               </tr>
               <tr>
                 <th colspan="2">{{ data.table.year }}年</th>

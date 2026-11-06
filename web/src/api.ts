@@ -184,7 +184,7 @@ export async function download(report: Report, format: string, share = false) {
   }
   const blob = await response.blob();
   const filename =
-    "运费明细表_" +
+    "FeeTable_" +
     report.table.year +
     "年" +
     report.table.month +
@@ -195,7 +195,7 @@ export async function download(report: Report, format: string, share = false) {
     format;
   const file = new File([blob], filename, { type: blob.type });
   if (share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: "运费明细表" });
+    await navigator.share({ files: [file], title: "FeeTable" });
     return;
   }
   const url = URL.createObjectURL(blob);

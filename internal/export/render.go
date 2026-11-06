@@ -75,7 +75,7 @@ func BuildLayout(report feetable.Report) (Layout, error) {
 		layout.Cells = append(layout.Cells, Cell{x, y, w, h, text, align, size})
 	}
 	x, y := 32.0, 32.0
-	add(x, y, total, 58, "运费明细表", "center", 28)
+	add(x, y, total, 58, "FeeTable", "center", 28)
 	y += 58
 	add(x, y, 116, 42, fmt.Sprintf("%d年", report.Table.Year), "center", 20)
 	add(x+116, y, 376, 42, "摘要", "center", 20)
@@ -254,7 +254,7 @@ func XLSX(report feetable.Report) ([]byte, error) {
 	}
 	f := excelize.NewFile()
 	defer f.Close()
-	sheet := "运费明细表"
+	sheet := "FeeTable"
 	if e := f.SetSheetName("Sheet1", sheet); e != nil {
 		return nil, e
 	}
@@ -285,7 +285,7 @@ func XLSX(report feetable.Report) ([]byte, error) {
 			return nil, e
 		}
 	}
-	for cell, text := range map[string]string{"A1": "运费明细表", "A2": fmt.Sprintf("%d年", report.Table.Year), "C2": "摘要", "E2": "运输数量", "F2": "单价", "G2": "运输金额", "A3": "月", "B3": "日"} {
+	for cell, text := range map[string]string{"A1": "FeeTable", "A2": fmt.Sprintf("%d年", report.Table.Year), "C2": "摘要", "E2": "运输数量", "F2": "单价", "G2": "运输金额", "A3": "月", "B3": "日"} {
 		if e = f.SetCellStr(sheet, cell, text); e != nil {
 			return nil, e
 		}

@@ -6,7 +6,7 @@ import SiteMenu from "./components/SiteMenu.vue";
   <header class="site-header">
     <RouterLink to="/" class="brand">
       <img class="brand-icon" :src="brandIcon" width="43" height="43" alt="" />
-      <span>运费明细表</span>
+      <span>FeeTable</span>
     </RouterLink>
     <SiteMenu />
   </header>
