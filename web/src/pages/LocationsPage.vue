@@ -6,6 +6,7 @@ import Icon from "../components/Icon.vue";
 const items = ref<Suggestion[]>([]);
 const search = ref("");
 const loading = ref(true);
+const loaded = ref(false);
 const error = ref("");
 const editing = ref<Suggestion>();
 const deleting = ref<Suggestion>();
@@ -26,6 +27,7 @@ async function load() {
   error.value = "";
   try {
     items.value = await api.suggestions("locations");
+    loaded.value = true;
   } catch (e) {
     error.value = (e as Error).message;
   } finally {
@@ -102,12 +104,13 @@ function close() {
   <div v-if="error" class="notice error" role="alert">
     {{ error }} <button @click="load">重试</button>
   </div>
-  <div v-else-if="loading" class="skeleton skeleton-table" />
-  <template v-else>
+  <div v-if="loading && !loaded" class="skeleton skeleton-table" />
+  <div v-if="loading && loaded" class="refresh-progress" role="status" aria-label="正在更新地点" />
+  <template v-if="loaded">
     <div class="section-label">
       <span>常用地点</span><span>{{ filtered.length }} 个</span>
     </div>
-    <ul v-if="filtered.length" class="location-list">
+    <ul v-if="filtered.length" class="location-list" :aria-busy="loading" :inert="loading || !!error">
       <li v-for="item in filtered" :key="item.id">
         <span class="location-name">{{ item.name }}</span>
         <div class="row-actions">

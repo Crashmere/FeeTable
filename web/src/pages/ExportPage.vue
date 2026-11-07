@@ -29,7 +29,7 @@ async function load() {
 }
 onMounted(load);
 async function run(format: string, share = false) {
-  if (!data.value || busy.value) return;
+  if (!data.value || loading.value || error.value || busy.value) return;
   busy.value = format;
   exportError.value = "";
   done.value = "";
@@ -71,9 +71,10 @@ function change(e: Event) {
   <div v-if="error" class="notice error" role="alert">
     {{ error }} <button @click="load">重试</button>
   </div>
-  <div v-else-if="loading" class="skeleton skeleton-table" />
-  <template v-else-if="data"
-    ><div class="export-layout">
+  <div v-if="loading && !data" class="skeleton skeleton-table" />
+  <div v-if="loading && data" class="refresh-progress" role="status" aria-label="正在更新导出预览" />
+  <template v-if="data"
+    ><div class="export-layout" :aria-busy="loading" :inert="loading || !!error">
       <section class="paper-surround">
         <div class="preview-caption">
           <span>{{ data.table.year }} 年 {{ data.table.month }} 月</span
